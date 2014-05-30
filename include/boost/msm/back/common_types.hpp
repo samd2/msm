@@ -24,7 +24,8 @@ typedef enum
     HANDLED_FALSE=0,
     HANDLED_TRUE =1,
     HANDLED_GUARD_REJECT=2,
-    HANDLED_DEFERRED=4
+    HANDLED_DEFERRED=4,
+    HANDLED_REJECT_MISSED_UPDATE=8
 } HandledEnum;
 
 typedef HandledEnum execute_return;

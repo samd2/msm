@@ -11,6 +11,7 @@
 #ifndef BOOST_MSM_BACK_STATEMACHINE_H
 #define BOOST_MSM_BACK_STATEMACHINE_H
 
+#include <atomic>
 #include <exception>
 #include <vector>
 #include <functional>
@@ -58,6 +59,7 @@
 #include <boost/msm/back/fold_to_list.hpp>
 #include <boost/msm/back/metafunctions.hpp>
 #include <boost/msm/back/history_policies.hpp>
+#include <boost/msm/back/threading_policy.hpp>
 #include <boost/msm/back/common_types.hpp>
 #include <boost/msm/back/args.hpp>
 #include <boost/msm/back/default_compile_policy.hpp>
@@ -77,6 +79,7 @@ BOOST_MPL_HAS_XXX_TRAIT_DEF(fsm_check)
 BOOST_MPL_HAS_XXX_TRAIT_DEF(compile_policy)
 BOOST_MPL_HAS_XXX_TRAIT_DEF(queue_container_policy)
 BOOST_MPL_HAS_XXX_TRAIT_DEF(using_declared_table)
+BOOST_MPL_HAS_XXX_TRAIT_DEF(threading_policy)
 
 #ifndef BOOST_MSM_CONSTRUCTOR_ARG_SIZE
 #define BOOST_MSM_CONSTRUCTOR_ARG_SIZE 5 // default max number of arguments for constructors
@@ -106,6 +109,7 @@ BOOST_PARAMETER_TEMPLATE_KEYWORD(history_policy)
 BOOST_PARAMETER_TEMPLATE_KEYWORD(compile_policy)
 BOOST_PARAMETER_TEMPLATE_KEYWORD(fsm_check_policy)
 BOOST_PARAMETER_TEMPLATE_KEYWORD(queue_container_policy)
+BOOST_PARAMETER_TEMPLATE_KEYWORD(threading_policy)
 
 typedef ::boost::parameter::parameters<
     ::boost::parameter::required< ::boost::msm::back::tag::front_end >
@@ -122,6 +126,9 @@ typedef ::boost::parameter::parameters<
         ::boost::parameter::deduced< ::boost::msm::back::tag::queue_container_policy>, 
         has_queue_container_policy< ::boost::mpl::_ > 
     >
+  , ::boost::parameter::optional<
+        ::boost::parameter::deduced< ::boost::msm::back::tag::threading_policy>, has_threading_policy< ::boost::mpl::_ >
+  >
 > state_machine_signature;
 
 // just here to disable use of proto when not needed
@@ -144,21 +151,22 @@ template <
     , class A2 = parameter::void_
     , class A3 = parameter::void_
     , class A4 = parameter::void_
+    , class A5 = parameter::void_
 >
 class state_machine : //public Derived
     public ::boost::parameter::binding<
-            typename state_machine_signature::bind<A0,A1,A2,A3,A4>::type, ::boost::msm::back::tag::front_end
+            typename state_machine_signature::bind<A0,A1,A2,A3,A4,A5>::type, ::boost::msm::back::tag::front_end
     >::type
-    , public make_euml_terminal<state_machine<A0,A1,A2,A3,A4>,
+    , public make_euml_terminal<state_machine<A0,A1,A2,A3,A4,A5>,
                          typename ::boost::parameter::binding<
-                                    typename state_machine_signature::bind<A0,A1,A2,A3,A4>::type, ::boost::msm::back::tag::front_end
+                                    typename state_machine_signature::bind<A0,A1,A2,A3,A4,A5>::type, ::boost::msm::back::tag::front_end
                          >::type   
       >
 {
 public:
     // Create ArgumentPack
     typedef typename
-        state_machine_signature::bind<A0,A1,A2,A3,A4>::type
+        state_machine_signature::bind<A0,A1,A2,A3,A4,A5>::type
         state_machine_args;
 
     // Extract first logical parameter.
@@ -178,10 +186,13 @@ public:
         state_machine_args, ::boost::msm::back::tag::queue_container_policy, 
         queue_container_deque >::type                                                               QueueContainerPolicy;
 
+    typedef typename ::boost::parameter::binding<
+        state_machine_args, ::boost::msm::back::tag::threading_policy, thread_unsafe_policy >::type ThreadingPolicy;
+
 private: 
 
     typedef boost::msm::back::state_machine<
-        A0,A1,A2,A3,A4>                             library_sm;
+        A0,A1,A2,A3,A4,A5>                          library_sm;
 
     typedef ::boost::function<
         execute_return ()>                          transition_fct;
@@ -441,7 +452,7 @@ private:
 
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
             BOOST_STATIC_CONSTANT(int, next_state = (get_state_id<stt,next_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
+            ThreadingPolicy::check_current_state(state,current_state);
             // if T1 is an exit pseudo state, then take the transition only if the pseudo exit state is active
             if (has_pseudo_exit<T1>::type::value && 
                 !is_exit_state_active<T1,get_owner<T1,library_sm> >(fsm))
@@ -453,24 +464,25 @@ private:
                 // guard rejected the event, we stay in the current one
                 return HANDLED_GUARD_REJECT;
             }
-            fsm.m_states[region_index] = active_state_switching::after_guard(current_state,next_state);
+            if (ThreadingPolicy::template after_guard<active_state_switching>(current_state,next_state,fsm.m_states[region_index]) == HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
 
             // the guard condition has already been checked
             execute_exit<current_state_type>
                 (::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_exit(current_state,next_state);
+            ThreadingPolicy::template after_exit<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
 
             // then call the action method
             HandledEnum res = ROW::action_call(fsm,evt,
                              ::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),
                              ::boost::fusion::at_key<next_state_type>(fsm.m_substate_list),
                              fsm.m_substate_list);
-            fsm.m_states[region_index] = active_state_switching::after_action(current_state,next_state);
+            ThreadingPolicy::template after_action<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
 
             // and finally the entry method of the new current state
             convert_event_and_execute_entry<next_state_type,T2>
                 (::boost::fusion::at_key<next_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_entry(current_state,next_state);
+            ThreadingPolicy::template after_entry<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
             return res;
         }
     };
@@ -520,7 +532,7 @@ private:
         {
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
             BOOST_STATIC_CONSTANT(int, next_state = (get_state_id<stt,next_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
+            ThreadingPolicy::check_current_state(state,current_state);
             // if T1 is an exit pseudo state, then take the transition only if the pseudo exit state is active
             if (has_pseudo_exit<T1>::type::value && 
                 !is_exit_state_active<T1,get_owner<T1,library_sm> >(fsm))
@@ -532,18 +544,19 @@ private:
                 // guard rejected the event, we stay in the current one
                 return HANDLED_GUARD_REJECT;
             }
-            fsm.m_states[region_index] = active_state_switching::after_guard(current_state,next_state);
+            if (ThreadingPolicy::template after_guard<active_state_switching>(current_state,next_state,fsm.m_states[region_index]) == HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
 
             // the guard condition has already been checked
             execute_exit<current_state_type>
                 (::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_exit(current_state,next_state);
-            fsm.m_states[region_index] = active_state_switching::after_action(current_state,next_state);
+            ThreadingPolicy::template after_exit<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
+            ThreadingPolicy::template after_action<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
 
             // and finally the entry method of the new current state
             convert_event_and_execute_entry<next_state_type,T2>
                 (::boost::fusion::at_key<next_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_entry(current_state,next_state);
+            ThreadingPolicy::template after_entry<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
             return HANDLED_TRUE;
         }
     };
@@ -583,7 +596,7 @@ private:
         {
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
             BOOST_STATIC_CONSTANT(int, next_state = (get_state_id<stt,next_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
+            ThreadingPolicy::check_current_state(state,current_state);
 
             // if T1 is an exit pseudo state, then take the transition only if the pseudo exit state is active
             if (has_pseudo_exit<T1>::type::value && 
@@ -591,25 +604,26 @@ private:
             {
                 return HANDLED_FALSE;
             }
-            fsm.m_states[region_index] = active_state_switching::after_guard(current_state,next_state);
+            if (ThreadingPolicy::template after_guard<active_state_switching>(current_state,next_state,fsm.m_states[region_index]) == HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
 
             // no need to check the guard condition
             // first call the exit method of the current state
             execute_exit<current_state_type>
                 (::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_exit(current_state,next_state);
+            ThreadingPolicy::template after_exit<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
 
             // then call the action method
             HandledEnum res = ROW::action_call(fsm,evt,
                             ::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),
                             ::boost::fusion::at_key<next_state_type>(fsm.m_substate_list),
                             fsm.m_substate_list);
-            fsm.m_states[region_index] = active_state_switching::after_action(current_state,next_state);
+            ThreadingPolicy::template after_action<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
 
             // and finally the entry method of the new current state
             convert_event_and_execute_entry<next_state_type,T2>
                 (::boost::fusion::at_key<next_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_entry(current_state,next_state);
+            ThreadingPolicy::template after_entry<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
             return res;
         }
     };
@@ -649,7 +663,7 @@ private:
         {
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
             BOOST_STATIC_CONSTANT(int, next_state = (get_state_id<stt,next_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
+            ThreadingPolicy::check_current_state(state,current_state);
 
             // if T1 is an exit pseudo state, then take the transition only if the pseudo exit state is active
             if (has_pseudo_exit<T1>::type::value && 
@@ -657,19 +671,19 @@ private:
             {
                 return HANDLED_FALSE;
             }
-            fsm.m_states[region_index] = active_state_switching::after_guard(current_state,next_state);
+            if (ThreadingPolicy::template after_guard<active_state_switching>(current_state,next_state,fsm.m_states[region_index]) == HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
 
             // first call the exit method of the current state
             execute_exit<current_state_type>
                 (::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_exit(current_state,next_state);
-            fsm.m_states[region_index] = active_state_switching::after_action(current_state,next_state);
-
+            ThreadingPolicy::template after_exit<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
+            ThreadingPolicy::template after_action<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
 
             // and finally the entry method of the new current state
             convert_event_and_execute_entry<next_state_type,T2>
                 (::boost::fusion::at_key<next_state_type>(fsm.m_substate_list),evt,fsm);
-            fsm.m_states[region_index] = active_state_switching::after_entry(current_state,next_state);
+            ThreadingPolicy::template after_entry<active_state_switching>(current_state,next_state,fsm.m_states[region_index]);
             return HANDLED_TRUE;
         }
     };
@@ -696,17 +710,18 @@ private:
             return false;
         }
         // Take the transition action and return the next state.
-        static HandledEnum execute(library_sm& fsm, int , int state, transition_event const& evt)
+        static HandledEnum execute(library_sm& fsm, int region_index, int state, transition_event const& evt)
         {
 
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
+            ThreadingPolicy::check_current_state(state,current_state);
             if (!check_guard(fsm,evt))
             {
                 // guard rejected the event, we stay in the current one
                 return HANDLED_GUARD_REJECT;
             }
-
+            if (ThreadingPolicy::template after_guard<active_state_switching>(current_state,current_state,fsm.m_states[region_index]) == HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
             // call the action method
             HandledEnum res = ROW::action_call(fsm,evt,
                              ::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),
@@ -739,15 +754,17 @@ private:
             return false;
         }
         // Take the transition action and return the next state.
-        static HandledEnum execute(library_sm& fsm, int , int state, transition_event const& evt)
+        static HandledEnum execute(library_sm& fsm, int region_index, int state, transition_event const& evt)
         {
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
+            ThreadingPolicy::check_current_state(state,current_state);
             if (!check_guard(fsm,evt))
             {
                 // guard rejected the event, we stay in the current one
                 return HANDLED_GUARD_REJECT;
             }
+            if (ThreadingPolicy::template after_guard<active_state_switching>(current_state,current_state,fsm.m_states[region_index]) == HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
             return HANDLED_TRUE;
         }
     };
@@ -766,11 +783,12 @@ private:
         typedef T2 next_state_type;
 
         // Take the transition action and return the next state.
-        static HandledEnum execute(library_sm& fsm, int , int state, transition_event const& evt)
+        static HandledEnum execute(library_sm& fsm, int region_index, int state, transition_event const& evt)
         {
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
-
+            ThreadingPolicy::check_current_state(state,current_state);
+            if (ThreadingPolicy::template after_guard<active_state_switching>(current_state,current_state,fsm.m_states[region_index]) == HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
             // call the action method
             HandledEnum res = ROW::action_call(fsm,evt,
                             ::boost::fusion::at_key<current_state_type>(fsm.m_substate_list),
@@ -796,7 +814,7 @@ private:
         static HandledEnum execute(library_sm& , int , int state, transition_event const& )
         {
             BOOST_STATIC_CONSTANT(int, current_state = (get_state_id<stt,current_state_type>::type::value));
-            BOOST_ASSERT(state == (current_state));
+            ThreadingPolicy::check_current_state(state,current_state);
             return HANDLED_TRUE;
         }
     };
@@ -1020,10 +1038,13 @@ private:
         // Take the transition action and return the next state.
         static HandledEnum execute(library_sm& fsm, int region_index, int , transition_event const& evt)
         {
+            if (ThreadingPolicy::template after_guard<active_state_switching>(get_state_id<stt,T1>::type::value,get_state_id<stt,T1>::type::value,fsm.m_states[region_index]) ==
+                    HANDLED_REJECT_MISSED_UPDATE)
+                return HANDLED_REJECT_MISSED_UPDATE;
+
             // false as second parameter because this event is forwarded from outer fsm
             execute_return res = 
                 (::boost::fusion::at_key<current_state_type>(fsm.m_substate_list)).process_event_internal(evt,false); 
-            fsm.m_states[region_index]=get_state_id<stt,T1>::type::value;
             return res;
         }
         // helper metafunctions used by dispatch table and give the frow a new event
@@ -1164,7 +1185,7 @@ private:
     typedef typename create_stt<library_sm>::type stt;
     typedef typename get_initial_states<typename Derived::initial_state>::type initial_states;
     typedef typename generate_state_set<stt>::type state_list;
-    typedef typename HistoryPolicy::template apply<nr_regions::value>::type concrete_history;
+    typedef typename HistoryPolicy::template apply<nr_regions::value,ThreadingPolicy>::type concrete_history;
 
     typedef typename ::boost::fusion::result_of::as_set<state_list>::type substate_list;
     typedef typename ::boost::msm::back::generate_event_set<
@@ -1261,7 +1282,13 @@ private:
     template<class Event>
     execute_return process_event(Event const& evt)
     {
-        return process_event_internal(evt,true);
+        HandledEnum res = HANDLED_FALSE;
+        do
+        {
+            res = process_event_internal(evt,true);
+        }
+        while(res == HANDLED_REJECT_MISSED_UPDATE);
+        return res;
     }
 
     template <class EventType>
@@ -1337,7 +1364,7 @@ private:
     }
 
     // Getter that returns the current state of the FSM
-    const int* current_state() const
+    const typename ThreadingPolicy::state_index_type* current_state() const
     {
         return this->m_states;
     }
@@ -1535,7 +1562,7 @@ private:
      // helper used to fill the initial states
      struct init_states
      {
-         init_states(int* const init):m_initial_states(init),m_index(-1){}
+         init_states(typename ThreadingPolicy::state_index_type* const init):m_initial_states(init),m_index(-1){}
 
          // History initializer function object, used with mpl::for_each
          template <class State>
@@ -1543,7 +1570,7 @@ private:
          {
              m_initial_states[++m_index]=get_state_id<stt,State>::type::value;
          }
-         int* const m_initial_states;
+         typename ThreadingPolicy::state_index_type* const m_initial_states;
          int m_index;
      };
  public:
@@ -1565,7 +1592,7 @@ private:
      }
 
      // Construct with the default initial states
-     state_machine<A0,A1,A2,A3,A4 >()
+     state_machine<A0,A1,A2,A3,A4,A5 >()
          :Derived()
          ,m_events_queue() 
          ,m_deferred_events_queue()
@@ -1583,7 +1610,7 @@ private:
          fill_states(this);
      }
      template <class Expr>
-     state_machine<A0,A1,A2,A3,A4 >
+     state_machine<A0,A1,A2,A3,A4,A5 >
          (Expr const& expr,typename ::boost::enable_if<typename ::boost::proto::is_expr<Expr>::type >::type* =0)
          :Derived()
          ,m_events_queue() 
@@ -1611,7 +1638,7 @@ private:
 #define MSM_CONSTRUCTOR_HELPER_EXECUTE_SUB(z, n, unused) ARG ## n t ## n
 #define MSM_CONSTRUCTOR_HELPER_EXECUTE(z, n, unused)                                \
         template <BOOST_PP_ENUM_PARAMS(n, class ARG)>                               \
-        state_machine<A0,A1,A2,A3,A4                                                \
+        state_machine<A0,A1,A2,A3,A4,A5                                             \
         >(BOOST_PP_ENUM(n, MSM_CONSTRUCTOR_HELPER_EXECUTE_SUB, ~ ),                 \
         typename ::boost::disable_if<typename ::boost::proto::is_expr<ARG0>::type >::type* =0 )                \
         :Derived(BOOST_PP_ENUM_PARAMS(n,t))                                         \
@@ -1629,7 +1656,7 @@ private:
          fill_states(this);                                                         \
      }                                                                              \
         template <class Expr,BOOST_PP_ENUM_PARAMS(n, class ARG)>                    \
-        state_machine<A0,A1,A2,A3,A4                                                \
+        state_machine<A0,A1,A2,A3,A4,A5                                             \
         >(Expr const& expr,BOOST_PP_ENUM(n, MSM_CONSTRUCTOR_HELPER_EXECUTE_SUB, ~ ), \
         typename ::boost::enable_if<typename ::boost::proto::is_expr<Expr>::type >::type* =0 ) \
         :Derived(BOOST_PP_ENUM_PARAMS(n,t))                                         \
@@ -1668,7 +1695,7 @@ private:
          }
         return *this;
      }
-     state_machine<A0,A1,A2,A3,A4> 
+     state_machine<A0,A1,A2,A3,A4,A5>
          (library_sm const& rhs)
          : Derived(rhs)
      {
@@ -1901,6 +1928,7 @@ private:
             HandledEnum res =
                 table::instance.entries[self->m_states[0]+1](
                 *self, 0, self->m_states[0], evt);
+
             result = (HandledEnum)((int)result | (int)res);
             // process the event in the internal table of this fsm if the event is processable (present in the table)
             process_fsm_internal_table<Event>::process(evt,self,result);
@@ -1927,6 +1955,7 @@ private:
                 HandledEnum res =
                     table::instance.entries[self_->m_states[region_id::value]+1](
                     *self_, region_id::value , self_->m_states[region_id::value], evt);
+
                 result_ = (HandledEnum)((int)result_ | (int)res);
                 In< ::boost::mpl::int_<region_id::value+1> >::process(evt,self_,result_);
             }
@@ -2016,7 +2045,9 @@ private:
         // but let the containing sm handle the error, unless the event was generated in this fsm 
         // (by calling process_event on this fsm object, is_direct_call == true)
         // completion events do not produce an error
-        if ( (!is_contained() || is_direct_call) && !handled && !is_completion_event<Event>::type::value)
+        bool stoppedFlag = is_event_handling_blocked_helper<Event> ( ::boost::mpl::bool_<has_fsm_blocking_states<library_sm>::type::value>() );
+
+        if ( (!is_contained() || is_direct_call) && !handled && !is_completion_event<Event>::type::value && !stoppedFlag)
         {
             for (int i=0; i<nr_regions::value;++i)
             {
@@ -2574,8 +2605,8 @@ BOOST_PP_REPEAT(BOOST_PP_ADD(BOOST_MSM_VISITOR_ARG_SIZE,1), MSM_VISITOR_ARGS_EXE
          template<class Event>
          static void do_entry(library_sm* self_,Event const& incomingEvent)
          {
-             self_->m_states[region_id::value] = 
-                 self_->m_history.history_entry(incomingEvent)[region_id::value];
+             ThreadingPolicy::assign(self_->m_states[region_id::value] ,
+                 self_->m_history.history_entry(incomingEvent)[region_id::value]);
              region_entry_exit_helper
                  < ::boost::mpl::int_<region_id::value+1> >::do_entry(self_,incomingEvent);
          }
@@ -2810,7 +2841,8 @@ private:
     friend struct dispatch_table;
 
     // data members
-    int                             m_states[nr_regions::value];
+    typename ThreadingPolicy::state_index_type
+                                    m_states[nr_regions::value];
     msg_queue_helper<library_sm>    m_events_queue;
     deferred_msg_queue_helper
         <library_sm>                m_deferred_events_queue;
