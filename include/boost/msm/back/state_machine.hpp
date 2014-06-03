@@ -1282,13 +1282,7 @@ private:
     template<class Event>
     execute_return process_event(Event const& evt)
     {
-        HandledEnum res = HANDLED_FALSE;
-        do
-        {
-            res = process_event_internal(evt,true);
-        }
-        while(res == HANDLED_REJECT_MISSED_UPDATE);
-        return res;
+        return process_event_retry_policy(evt,typename ThreadingPolicy::retry_after_missed_update());
     }
 
     template <class EventType>
@@ -1731,7 +1725,7 @@ private:
     }
     // the following functions handle pre/post-process handling  of a message queue
     template <class StateType,class EventType>
-    bool do_pre_msg_queue_helper(EventType const& evt, ::boost::mpl::true_ const &)
+    bool do_pre_msg_queue_helper(EventType const& , ::boost::mpl::true_ const &)
     {
         // no message queue needed
         return true;
@@ -2068,6 +2062,23 @@ private:
 #endif
 
 private:
+    template<class Event>
+    execute_return process_event_retry_policy(Event const& evt, ::boost::mpl::false_ const &)
+    {
+        return process_event_internal(evt,true);
+    }
+    template<class Event>
+    execute_return process_event_retry_policy(Event const& evt, ::boost::mpl::true_ const &)
+    {
+        HandledEnum res = HANDLED_FALSE;
+        do
+        {
+            res = process_event_internal(evt,true);
+        }
+        while(res == HANDLED_REJECT_MISSED_UPDATE);
+        return res;
+    }
+
     // composite accept implementation. First calls accept on the composite, then accept on all its active states.
     void composite_accept()
     {

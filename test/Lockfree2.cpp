@@ -26,6 +26,9 @@
 #include <boost/thread/scoped_thread.hpp>
 #include <boost/thread/future.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/chrono/chrono.hpp>
+//for comparison with locks
+#include <boost/thread/mutex.hpp>
 namespace msm = boost::msm;
 namespace mpl = boost::mpl;
 using namespace msm::front;
@@ -39,6 +42,10 @@ namespace
     // front-end: define the FSM structure 
     struct player_ : public msm::front::state_machine_def<player_>
     {
+        // no need for exception handling or message queue
+        typedef int no_exception_thrown;
+        typedef int no_message_queue;
+
         int m_c=0;
 
         // The list of FSM states
@@ -99,7 +106,7 @@ namespace
             Row < State1  , eventStop   , Stopped , none                      , none                 >,
             Row < State2  , eventStop   , Stopped , none                      , none                 >,
             Row < State3  , eventStop   , Stopped , none                      , none                 >,
-            Row < Stopped , eventRun    , Stopped , none                      , none                 >
+            Row < Stopped , eventRun    , none    , none                      , none                 >
             //  +---------+-------------+---------+---------------------------+----------------------+
         > {};
 
@@ -130,15 +137,14 @@ namespace
         }
 
     };
-    // Pick a back-end
-    typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy> player;
 
+    template <class Player>
     struct func
     {
-      player& _fsm;
+      Player& _fsm;
       boost::shared_ptr<boost::promise<void> > _promise;
 
-      func(player& fsm_,boost::shared_ptr<boost::promise<void> > aPromise) :
+      func(Player& fsm_,boost::shared_ptr<boost::promise<void> > aPromise) :
         _fsm(fsm_)
       , _promise(aPromise)
       {
@@ -152,27 +158,38 @@ namespace
       }
     };
 
-    BOOST_AUTO_TEST_CASE( my_test )
+    BOOST_AUTO_TEST_CASE( test_lockfree_internal_strong )
     {     
+        // Pick a back-end
+        typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<>> player;
+
+        typename boost::chrono::high_resolution_clock::time_point start;
+        typename boost::chrono::high_resolution_clock::time_point stop;
+        long duration = 0;
+
         for (int c = 0 ; c< 100 ; ++c)
         {
             player p;
+            p.start();
             {
                 p.m_c=c;
-                p.start();
                 boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
                 boost::shared_future<void> fu = aPromise->get_future();
-                boost::thread t(( func(p,aPromise) ));
+                boost::thread t(( func<player>(p,aPromise) ));
                 boost::strict_scoped_thread<> g( (boost::move(t)) );
+
                 for (int i = 0 ; i< 1000000 ; ++i)
                 {
                     p.process_event(eventRun());
-                }
+                }                
                 fu.get();
+                start = boost::chrono::high_resolution_clock::now();
                 for (int i = 0 ; i< 1000000 ; ++i)
                 {
                     p.process_event(eventRun());
                 }
+                stop = boost::chrono::high_resolution_clock::now();
+                duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
             }
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
@@ -182,7 +199,196 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
         }
+        stop = boost::chrono::high_resolution_clock::now();
+        std::cout << "test_lockfree_internal_strong took in us:"<<  duration <<"\n" <<std::endl;
+    }
+    BOOST_AUTO_TEST_CASE( test_lockfree_internal_weak )
+    {
+        // Pick a back-end
+        typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<boost::msm::back::weak_exchange>> player;
 
+        typename boost::chrono::high_resolution_clock::time_point start;
+        typename boost::chrono::high_resolution_clock::time_point stop;
+        long duration = 0;
+
+        for (int c = 0 ; c< 100 ; ++c)
+        {
+            player p;
+            p.start();
+            {
+                p.m_c=c;
+                boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
+                boost::shared_future<void> fu = aPromise->get_future();
+                boost::thread t(( func<player>(p,aPromise) ));
+                boost::strict_scoped_thread<> g( (boost::move(t)) );
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    p.process_event(eventRun());
+                }
+                fu.get();
+                start = boost::chrono::high_resolution_clock::now();
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    p.process_event(eventRun());
+                }
+                stop = boost::chrono::high_resolution_clock::now();
+                duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
+            }
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
+            BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
+        }
+        stop = boost::chrono::high_resolution_clock::now();
+        std::cout << "test_lockfree_internal_weak took in us:"<<  duration <<"\n" <<std::endl;
+    }
+    BOOST_AUTO_TEST_CASE( test_lockfree_internal_no_thread )
+    {
+        // Pick a back-end
+        typedef msm::back::state_machine<player_,boost::msm::back::lockfree_policy<>> player;
+
+        typename boost::chrono::high_resolution_clock::time_point start;
+        typename boost::chrono::high_resolution_clock::time_point stop;
+        long duration = 0;
+
+        for (int c = 0 ; c< 100 ; ++c)
+        {
+            player p;
+            p.start();
+            {
+                p.m_c=c;
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    p.process_event(eventRun());
+                }
+                start = boost::chrono::high_resolution_clock::now();
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    p.process_event(eventRun());
+                }
+                p.process_event(eventStop());
+                stop = boost::chrono::high_resolution_clock::now();
+                duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
+            }
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
+            BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
+        }
+        stop = boost::chrono::high_resolution_clock::now();
+        std::cout << "test_lockfree_internal_no_thread took in us:"<<  duration <<"\n" <<std::endl;
+    }
+    BOOST_AUTO_TEST_CASE( test_lockfree_internal_no_lockfree )
+    {
+        // Pick a back-end
+        typedef msm::back::state_machine<player_> player;
+
+        typename boost::chrono::high_resolution_clock::time_point start;
+        typename boost::chrono::high_resolution_clock::time_point stop;
+        long duration = 0;
+
+        for (int c = 0 ; c< 100 ; ++c)
+        {
+            player p;
+            p.start();
+            {
+                p.m_c=c;
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    p.process_event(eventRun());
+                }
+                start = boost::chrono::high_resolution_clock::now();
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    p.process_event(eventRun());
+                }
+                p.process_event(eventStop());
+                stop = boost::chrono::high_resolution_clock::now();
+                duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
+            }
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
+            BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
+        }
+        stop = boost::chrono::high_resolution_clock::now();
+        std::cout << "test_lockfree_internal_no_lockfree took in us:" <<  duration <<"\n" <<std::endl;
+    }
+    BOOST_AUTO_TEST_CASE( test_lockfree_internal_locks )
+    {
+        boost::mutex a_mutex;
+        // Pick a back-end
+        typedef msm::back::state_machine<player_> player;
+        struct lockfunc
+        {
+          player& _fsm;
+          boost::shared_ptr<boost::promise<void> > _promise;
+          boost::mutex& _mutex;
+
+          lockfunc(player& fsm_,boost::shared_ptr<boost::promise<void> > aPromise,boost::mutex& mutex_) :
+            _fsm(fsm_)
+          , _promise(aPromise)
+          , _mutex(mutex_)
+          {
+          }
+
+          void operator()()
+          {
+            _promise->set_value();
+            boost::this_thread::sleep(boost::posix_time::milliseconds(50));
+            boost::unique_lock<boost::mutex> scoped_lock(_mutex);
+            _fsm.process_event(eventStop());
+          }
+        };
+
+        typename boost::chrono::high_resolution_clock::time_point start;
+        typename boost::chrono::high_resolution_clock::time_point stop;
+        long duration = 0;
+
+        for (int c = 0 ; c< 100 ; ++c)
+        {
+            player p;
+            p.start();
+            {
+                p.m_c=c;
+                boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
+                boost::shared_future<void> fu = aPromise->get_future();
+                boost::thread t(( lockfunc(p,aPromise,a_mutex) ));
+                boost::strict_scoped_thread<> g( (boost::move(t)) );
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    boost::unique_lock<boost::mutex> scoped_lock(a_mutex);
+                    p.process_event(eventRun());
+                }
+                fu.get();
+                start = boost::chrono::high_resolution_clock::now();
+                for (int i = 0 ; i< 1000000 ; ++i)
+                {
+                    boost::unique_lock<boost::mutex> scoped_lock(a_mutex);
+                    p.process_event(eventRun());
+                }
+                stop = boost::chrono::high_resolution_clock::now();
+                duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
+            }
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+
+            BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
+            BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
+        }
+        stop = boost::chrono::high_resolution_clock::now();
+        std::cout << "test_lockfree_internal_locks took in us:" <<  duration <<"\n" <<std::endl;
     }
 }
 
