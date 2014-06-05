@@ -36,7 +36,7 @@ namespace
     struct eventRun {};
     struct eventStop {};
 
-    // front-end: define the FSM structure 
+    // front-end: define the FSM structure
     struct player_ : public msm::front::state_machine_def<player_>
     {
         // no need for exception handling or message queue
@@ -55,15 +55,69 @@ namespace
             int entry_counter;
             int exit_counter;
         };
-        struct State2 : public msm::front::state<>
+        struct State2_ : public msm::front::state_machine_def<State2_>
         {
+            // no need for exception handling or message queue
+            typedef int no_exception_thrown;
+            typedef int no_message_queue;
+
             template <class Event,class FSM>
             void on_entry(Event const&,FSM& ) {++entry_counter;}
             template <class Event,class FSM>
             void on_exit(Event const&,FSM& ) {++exit_counter;}
             int entry_counter;
             int exit_counter;
+
+            struct Sub1 : public msm::front::state<>
+            {
+                template <class Event,class FSM>
+                void on_entry(Event const&,FSM& ) {++entry_counter;}
+                template <class Event,class FSM>
+                void on_exit(Event const&,FSM& ) {++exit_counter;}
+                int entry_counter;
+                int exit_counter;
+            };
+            struct Sub2 : public msm::front::state<>
+            {
+                template <class Event,class FSM>
+                void on_entry(Event const&,FSM& ) {++entry_counter;}
+                template <class Event,class FSM>
+                void on_exit(Event const&,FSM& ) {++exit_counter;}
+                int entry_counter;
+                int exit_counter;
+            };
+            struct Sub3 : public msm::front::state<>
+            {
+                template <class Event,class FSM>
+                void on_entry(Event const&,FSM& ) {++entry_counter;}
+                template <class Event,class FSM>
+                void on_exit(Event const&,FSM& ) {++exit_counter;}
+                int entry_counter;
+                int exit_counter;
+            };
+            typedef Sub1 initial_state;
+            // Transition table for player
+            struct transition_table : mpl::vector<
+                //    Start     Event         Next      Action                     Guard
+                //  +---------+-------------+---------+---------------------------+----------------------+
+                Row < Sub1    , eventRun    , Sub2    , none                      , none                 >,
+                Row < Sub2    , eventRun    , Sub3    , none                      , none                 >,
+                Row < Sub3    , eventRun    , Sub1    , none                      , none                 >
+                //  +---------+-------------+---------+---------------------------+----------------------+
+            > {};
+            // Replaces the default no-transition response.
+            template <class FSM,class Event>
+            void no_transition(Event const&, FSM&,int)
+            {
+                BOOST_FAIL("no_transition in submachine called!");
+            }
+            template <class FSM,class Event>
+            void exception_caught (Event const&,FSM&,std::exception&)
+            {
+                BOOST_FAIL("exception_caught called in submachine!");
+            }
         };
+        typedef msm::back::state_machine<State2_, boost::msm::back::lockfree_policy<>> State2;
         struct State3 : public msm::front::state<>
         {
             template <class Event,class FSM>
@@ -73,7 +127,7 @@ namespace
             int entry_counter;
             int exit_counter;
         };
-        struct Stopped : public msm::front::terminate_state<>
+        struct Stopped : public msm::front::state<>
         {
             template <class Event,class FSM>
             void on_entry(Event const&,FSM& ) {++entry_counter;}
@@ -102,7 +156,8 @@ namespace
             //  +---------+-------------+---------+---------------------------+----------------------+
             Row < State1  , eventStop   , Stopped , none                      , none                 >,
             Row < State2  , eventStop   , Stopped , none                      , none                 >,
-            Row < State3  , eventStop   , Stopped , none                      , none                 >
+            Row < State3  , eventStop   , Stopped , none                      , none                 >,
+            Row < Stopped , eventRun    , none    , none                      , none                 >
             //  +---------+-------------+---------+---------------------------+----------------------+
         > {};
 
@@ -120,7 +175,7 @@ namespace
         }
         // init counters
         template <class Event,class FSM>
-        void on_entry(Event const&,FSM& fsm) 
+        void on_entry(Event const&,FSM& fsm)
         {
             fsm.template get_state<player_::Stopped&>().entry_counter=0;
             fsm.template get_state<player_::Stopped&>().exit_counter=0;
@@ -130,9 +185,16 @@ namespace
             fsm.template get_state<player_::State2&>().exit_counter=0;
             fsm.template get_state<player_::State3&>().entry_counter=0;
             fsm.template get_state<player_::State3&>().exit_counter=0;
+
+            fsm.template get_state<player_::State2&>().template get_state<State2_::Sub1&>().entry_counter=0;
+            fsm.template get_state<player_::State2&>().template get_state<State2_::Sub1&>().exit_counter=0;
+            fsm.template get_state<player_::State2&>().template get_state<State2_::Sub2&>().entry_counter=0;
+            fsm.template get_state<player_::State2&>().template get_state<State2_::Sub2&>().exit_counter=0;
+            fsm.template get_state<player_::State2&>().template get_state<State2_::Sub3&>().entry_counter=0;
+            fsm.template get_state<player_::State2&>().template get_state<State2_::Sub3&>().exit_counter=0;
         }
 
-    };    
+    };
     template <class Player>
     struct func
     {
@@ -156,8 +218,8 @@ namespace
       }
     };
 
-    BOOST_AUTO_TEST_CASE( test_lockfree_terminate_strong )
-    {     
+    BOOST_AUTO_TEST_CASE( test_lockfree_composite_terminate_strong )
+    {
         // Pick a back-end
         typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<>> player;
         for (int c = 0 ; c< 100 ; ++c)
@@ -190,44 +252,17 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
 
-            BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
-            BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
-        }
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().get_state<player_::State2_::Sub1&>().entry_counter ==
+                                p.get_state<player_::State2&>().get_state<player_::State2_::Sub1&>().exit_counter,"Sub1 entry != Sub1 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().get_state<player_::State2_::Sub2&>().entry_counter ==
+                                p.get_state<player_::State2&>().get_state<player_::State2_::Sub2&>().exit_counter,"Sub2 entry != Sub2 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().get_state<player_::State2_::Sub3&>().entry_counter ==
+                                p.get_state<player_::State2&>().get_state<player_::State2_::Sub3&>().exit_counter,"Sub3 entry != Sub3 exit");
 
-    }
-    BOOST_AUTO_TEST_CASE( test_lockfree_terminate_weak )
-    {
-        // Pick a back-end
-        typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<boost::msm::back::weak_exchange>> player;
-        for (int c = 0 ; c< 100 ; ++c)
-        {
-            player p;
-            p.start();
-            {
-                p.m_c=c;
-                boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
-                boost::shared_future<void> fu = aPromise->get_future();
-                boost::shared_ptr<boost::promise<void> > aPromise2(new boost::promise<void>);
-                boost::shared_future<void> fu2 = aPromise2->get_future();
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().get_state<player_::State2_::Sub1&>().entry_counter != 0,"Sub1 entry != 0");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().get_state<player_::State2_::Sub2&>().entry_counter != 0,"Sub2 entry != 0");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().get_state<player_::State2_::Sub3&>().entry_counter != 0,"Sub3 entry != 0");
 
-                boost::thread t(( func<player>(p,aPromise,aPromise2) ));
-                boost::strict_scoped_thread<> g( (boost::move(t)) );
-                for (int i = 0 ; i< 1000000 ; ++i)
-                {
-                    p.process_event(eventRun());
-                }
-                fu.get();
-                for (int i = 0 ; i< 1000000 ; ++i)
-                {
-                    p.process_event(eventRun());
-                }
-                fu2.get();
-            }
-            p.stop();
-
-            BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
-            BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
-            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
@@ -235,4 +270,5 @@ namespace
 
     }
 }
+
 

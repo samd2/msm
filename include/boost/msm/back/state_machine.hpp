@@ -1042,10 +1042,9 @@ private:
                     HANDLED_REJECT_MISSED_UPDATE)
                 return HANDLED_REJECT_MISSED_UPDATE;
 
-            // false as second parameter because this event is forwarded from outer fsm
-            execute_return res = 
-                (::boost::fusion::at_key<current_state_type>(fsm.m_substate_list)).process_event_internal(evt,false); 
-            return res;
+            // false as second parameter of process_event_retry_policy because this event is forwarded from outer fsm
+            return (::boost::fusion::at_key<current_state_type>(fsm.m_substate_list)).process_event_retry_policy(
+                        evt,false,typename current_state_type::ThreadingPolicy::retry_after_missed_update());
         }
         // helper metafunctions used by dispatch table and give the frow a new event
         // (used to avoid double entries in a table because of base events)
@@ -1282,7 +1281,7 @@ private:
     template<class Event>
     execute_return process_event(Event const& evt)
     {
-        return process_event_retry_policy(evt,typename ThreadingPolicy::retry_after_missed_update());
+        return process_event_retry_policy(evt,true,typename ThreadingPolicy::retry_after_missed_update());
     }
 
     template <class EventType>
@@ -2063,17 +2062,17 @@ private:
 
 private:
     template<class Event>
-    execute_return process_event_retry_policy(Event const& evt, ::boost::mpl::false_ const &)
+    execute_return process_event_retry_policy(Event const& evt, bool is_direct,::boost::mpl::false_ const &)
     {
-        return process_event_internal(evt,true);
+        return process_event_internal(evt,is_direct);
     }
     template<class Event>
-    execute_return process_event_retry_policy(Event const& evt, ::boost::mpl::true_ const &)
+    execute_return process_event_retry_policy(Event const& evt, bool is_direct, ::boost::mpl::true_ const &)
     {
         HandledEnum res = HANDLED_FALSE;
         do
         {
-            res = process_event_internal(evt,true);
+            res = process_event_internal(evt,is_direct);
         }
         while(res == HANDLED_REJECT_MISSED_UPDATE);
         return res;

@@ -143,10 +143,12 @@ namespace
     {
       Player& _fsm;
       boost::shared_ptr<boost::promise<void> > _promise;
+      boost::shared_ptr<boost::promise<void> > _promise2;
 
-      func(Player& fsm_,boost::shared_ptr<boost::promise<void> > aPromise) :
+      func(Player& fsm_,boost::shared_ptr<boost::promise<void> > aPromise,boost::shared_ptr<boost::promise<void> > aPromise2) :
         _fsm(fsm_)
       , _promise(aPromise)
+      , _promise2(aPromise2)
       {
       }
 
@@ -155,8 +157,10 @@ namespace
         _promise->set_value();
         boost::this_thread::sleep(boost::posix_time::milliseconds(50));
         _fsm.process_event(eventStop());
+         _promise2->set_value();
       }
     };
+
 
     BOOST_AUTO_TEST_CASE( test_lockfree_internal_strong )
     {     
@@ -175,7 +179,10 @@ namespace
                 p.m_c=c;
                 boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
                 boost::shared_future<void> fu = aPromise->get_future();
-                boost::thread t(( func<player>(p,aPromise) ));
+                boost::shared_ptr<boost::promise<void> > aPromise2(new boost::promise<void>);
+                boost::shared_future<void> fu2 = aPromise2->get_future();
+
+                boost::thread t(( func<player>(p,aPromise,aPromise2) ));
                 boost::strict_scoped_thread<> g( (boost::move(t)) );
 
                 for (int i = 0 ; i< 1000000 ; ++i)
@@ -190,7 +197,9 @@ namespace
                 }
                 stop = boost::chrono::high_resolution_clock::now();
                 duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
+                fu2.get();
             }
+            p.stop();
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
@@ -199,7 +208,6 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
         }
-        stop = boost::chrono::high_resolution_clock::now();
         std::cout << "test_lockfree_internal_strong took in us:"<<  duration <<"\n" <<std::endl;
     }
     BOOST_AUTO_TEST_CASE( test_lockfree_internal_weak )
@@ -219,7 +227,10 @@ namespace
                 p.m_c=c;
                 boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
                 boost::shared_future<void> fu = aPromise->get_future();
-                boost::thread t(( func<player>(p,aPromise) ));
+                boost::shared_ptr<boost::promise<void> > aPromise2(new boost::promise<void>);
+                boost::shared_future<void> fu2 = aPromise2->get_future();
+
+                boost::thread t(( func<player>(p,aPromise,aPromise2) ));
                 boost::strict_scoped_thread<> g( (boost::move(t)) );
                 for (int i = 0 ; i< 1000000 ; ++i)
                 {
@@ -233,7 +244,9 @@ namespace
                 }
                 stop = boost::chrono::high_resolution_clock::now();
                 duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
+                fu2.get();
             }
+            p.stop();
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
@@ -242,7 +255,6 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
         }
-        stop = boost::chrono::high_resolution_clock::now();
         std::cout << "test_lockfree_internal_weak took in us:"<<  duration <<"\n" <<std::endl;
     }
     BOOST_AUTO_TEST_CASE( test_lockfree_internal_no_thread )
@@ -281,7 +293,6 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
         }
-        stop = boost::chrono::high_resolution_clock::now();
         std::cout << "test_lockfree_internal_no_thread took in us:"<<  duration <<"\n" <<std::endl;
     }
     BOOST_AUTO_TEST_CASE( test_lockfree_internal_no_lockfree )
@@ -320,7 +331,6 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
         }
-        stop = boost::chrono::high_resolution_clock::now();
         std::cout << "test_lockfree_internal_no_lockfree took in us:" <<  duration <<"\n" <<std::endl;
     }
     BOOST_AUTO_TEST_CASE( test_lockfree_internal_locks )
@@ -332,11 +342,13 @@ namespace
         {
           player& _fsm;
           boost::shared_ptr<boost::promise<void> > _promise;
+          boost::shared_ptr<boost::promise<void> > _promise2;
           boost::mutex& _mutex;
 
-          lockfunc(player& fsm_,boost::shared_ptr<boost::promise<void> > aPromise,boost::mutex& mutex_) :
+          lockfunc(player& fsm_,boost::shared_ptr<boost::promise<void> > aPromise,boost::shared_ptr<boost::promise<void> > aPromise2,boost::mutex& mutex_) :
             _fsm(fsm_)
           , _promise(aPromise)
+          , _promise2(aPromise2)
           , _mutex(mutex_)
           {
           }
@@ -347,6 +359,7 @@ namespace
             boost::this_thread::sleep(boost::posix_time::milliseconds(50));
             boost::unique_lock<boost::mutex> scoped_lock(_mutex);
             _fsm.process_event(eventStop());
+            _promise2->set_value();
           }
         };
 
@@ -362,7 +375,10 @@ namespace
                 p.m_c=c;
                 boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
                 boost::shared_future<void> fu = aPromise->get_future();
-                boost::thread t(( lockfunc(p,aPromise,a_mutex) ));
+                boost::shared_ptr<boost::promise<void> > aPromise2(new boost::promise<void>);
+                boost::shared_future<void> fu2 = aPromise2->get_future();
+
+                boost::thread t(( lockfunc(p,aPromise,aPromise2,a_mutex) ));
                 boost::strict_scoped_thread<> g( (boost::move(t)) );
                 for (int i = 0 ; i< 1000000 ; ++i)
                 {
@@ -378,7 +394,9 @@ namespace
                 }
                 stop = boost::chrono::high_resolution_clock::now();
                 duration += (boost::chrono::nanoseconds(stop - start).count() / 1000);
+                fu2.get();
             }
+            p.stop();
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
@@ -387,7 +405,6 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
         }
-        stop = boost::chrono::high_resolution_clock::now();
         std::cout << "test_lockfree_internal_locks took in us:" <<  duration <<"\n" <<std::endl;
     }
 }
