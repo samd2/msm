@@ -47,6 +47,7 @@ namespace
         typedef int no_message_queue;
 
         int m_c=0;
+        int action_counter=0;
 
         // The list of FSM states
         struct State1 : public msm::front::state<>
@@ -89,7 +90,14 @@ namespace
         typedef State1 initial_state;
 
         // transition actions
-
+        struct action1
+        {
+            template <class EVT,class FSM,class SourceState,class TargetState>
+            void operator()(EVT const& ,FSM& fsm,SourceState& ,TargetState& )
+            {
+                ++fsm.action_counter;
+            }
+        };
         // guard conditions
 
 
@@ -100,7 +108,7 @@ namespace
             //    Start     Event         Next      Action                     Guard
             //  +---------+-------------+---------+---------------------------+----------------------+
             Row < State1  , eventRun    , State2  , none                      , none                 >,
-            Row < State2  , eventRun    , State3  , none                      , none                 >,
+            Row < State2  , eventRun    , State3  , action1                   , none                 >,
             Row < State3  , eventRun    , State1  , none                      , none                 >,
             //  +---------+-------------+---------+---------------------------+----------------------+
             Row < State1  , eventStop   , Stopped , none                      , none                 >,
@@ -204,6 +212,7 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.action_counter,"State3 entry != action_counter");
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
@@ -251,6 +260,7 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.action_counter,"State3 entry != action_counter");
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
@@ -289,6 +299,7 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.action_counter,"State3 entry != action_counter");
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
@@ -327,6 +338,7 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.action_counter,"State3 entry != action_counter");
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
@@ -401,6 +413,7 @@ namespace
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.action_counter,"State3 entry != action_counter");
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
             BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped

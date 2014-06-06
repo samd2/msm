@@ -140,7 +140,13 @@ namespace
         typedef State1 initial_state;
 
         // transition actions
-
+        struct action1
+        {
+            template <class EVT,class FSM,class SourceState,class TargetState>
+            void operator()(EVT const& ,FSM& ,SourceState& ,TargetState& )
+            {
+            }
+        };
         // guard conditions
 
 
@@ -150,22 +156,25 @@ namespace
         struct transition_table : mpl::vector<
             //    Start     Event         Next      Action                     Guard
             //  +---------+-------------+---------+---------------------------+----------------------+
+            Row < Stopped , eventRun    , none    , none                      , none                 >,
             Row < State1  , eventRun    , State2  , none                      , none                 >,
             Row < State2  , eventRun    , State3  , none                      , none                 >,
             Row < State3  , eventRun    , State1  , none                      , none                 >,
             //  +---------+-------------+---------+---------------------------+----------------------+
             Row < State1  , eventStop   , Stopped , none                      , none                 >,
             Row < State2  , eventStop   , Stopped , none                      , none                 >,
-            Row < State3  , eventStop   , Stopped , none                      , none                 >,
-            Row < Stopped , eventRun    , none    , none                      , none                 >
+            Row < State3  , eventStop   , Stopped , none                      , none                 >
             //  +---------+-------------+---------+---------------------------+----------------------+
         > {};
 
         // Replaces the default no-transition response.
         template <class FSM,class Event>
-        void no_transition(Event const& /*evt*/, FSM&,int /*s*/)
+        void no_transition(Event const& evt, FSM& fsm,int s)
         {
-            //std::cout << "no transition from state: " << s << " and event: " << typeid(evt).name() << " and counter: " << m_c << std::endl;
+            boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+            std::cout << "no transition from state: " << s << " and event: " << typeid(evt).name() << " and counter: " << m_c
+                      << " is teminate? " << fsm.template is_flag_active< ::boost::msm::TerminateFlag>()
+                      << std::endl;
             BOOST_FAIL("no_transition called!");
         }
         template <class FSM,class Event>
@@ -218,7 +227,7 @@ namespace
       }
     };
 
-    BOOST_AUTO_TEST_CASE( test_lockfree_composite_terminate_strong )
+    BOOST_AUTO_TEST_CASE( test_lockfree_composite_internal_strong )
     {
         // Pick a back-end
         typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<>> player;
@@ -240,7 +249,7 @@ namespace
                     p.process_event(eventRun());
                 }
                 fu.get();
-                for (int i = 0 ; i< 1000000 ; ++i)
+                for (int i = 0 ; i< 100000000 ; ++i)
                 {
                     p.process_event(eventRun());
                 }
@@ -265,7 +274,7 @@ namespace
 
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::Stopped&>().entry_counter == 1,"Stopped entry != 1");
-            BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Stopped should be active"); //Stopped
+            BOOST_CHECK_MESSAGE(p.current_state()[0] == 0,"Stopped should be active"); //Stopped
         }
 
     }
