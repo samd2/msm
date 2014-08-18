@@ -58,6 +58,7 @@ namespace boost { namespace msm { namespace front
     template <class SOURCE,class EVENT,class TARGET,class ACTION=none,class GUARD=none>
     struct Row
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
@@ -83,6 +84,7 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class TARGET>
     struct Row<SOURCE,EVENT,TARGET,none,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
@@ -94,6 +96,7 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class TARGET,class ACTION>
     struct Row<SOURCE,EVENT,TARGET,ACTION,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
@@ -112,6 +115,7 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class TARGET,class GUARD>
     struct Row<SOURCE,EVENT,TARGET,none,GUARD>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
@@ -130,6 +134,7 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class ACTION>
     struct Row<SOURCE,EVENT,none,ACTION,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
@@ -148,6 +153,7 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class GUARD>
     struct Row<SOURCE,EVENT,none,none,GUARD>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
@@ -165,6 +171,7 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class ACTION,class GUARD>
     struct Row<SOURCE,EVENT,none,ACTION,GUARD>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
@@ -189,6 +196,7 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT>
     struct Row<SOURCE,EVENT,none,none,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
