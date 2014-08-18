@@ -176,6 +176,7 @@ typedef
         >
         src_evt_guard_action_tgt;
 
+// internal transitions
 // internal transition without action or guard "src + evt"
 struct src_evt_transform
 {
@@ -204,16 +205,245 @@ typedef
   >
   src_evt;
 
+  // internal transition without guard "src + evt / action"
+  struct src_evt_action_transform
+  {
+      typedef src_evt_action_transform type;
 
+      template <class ResultOfSequence>
+      struct apply :
+      boost::msm::front::Row<
+        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+        typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+        typename boost::msm::front::none,
+        typename boost::mpl::at_c<ResultOfSequence, 4>::type,
+        typename boost::msm::front::none
+      >
+      {};
+  };
+  typedef
+    mpllibs::metaparse::transform<
+      mpllibs::metaparse::sequence<
+        // metaparse::token is used to consume whitespaces after token_name
+        mpllibs::metaparse::token<token_name>,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
+        mpllibs::metaparse::token<token_name>,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
+        mpllibs::metaparse::token<token_name>
+      >,
+      src_evt_action_transform
+    >
+    src_evt_action;
+
+    // internal transition without action "src + evt [guard]"
+    struct src_evt_guard_transform
+    {
+        typedef src_evt_guard_transform type;
+
+        template <class ResultOfSequence>
+        struct apply :
+        boost::msm::front::Row<
+          typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+          typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+          typename boost::msm::front::none,
+          typename boost::msm::front::none,
+          typename boost::mpl::at_c<ResultOfSequence, 4>::type
+        >
+        {};
+    };
+    typedef
+      mpllibs::metaparse::transform<
+        mpllibs::metaparse::sequence<
+          // metaparse::token is used to consume whitespaces after token_name
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+        >,
+        src_evt_guard_transform
+      >
+      src_evt_guard;
+
+      // internal transition with everything "src + evt [guard] / action"
+      struct src_evt_guard_action_transform
+      {
+          typedef src_evt_guard_action_transform type;
+
+          template <class ResultOfSequence>
+          struct apply :
+          boost::msm::front::Row<
+            typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+            typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+            boost::msm::front::none,
+            typename boost::mpl::at_c<ResultOfSequence, 7>::type,
+            typename boost::mpl::at_c<ResultOfSequence, 4>::type
+          >
+          {};
+      };
+      typedef
+        mpllibs::metaparse::transform<
+          mpllibs::metaparse::sequence<
+            // metaparse::token is used to consume whitespaces after token_name
+            mpllibs::metaparse::token<token_name>,
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
+            mpllibs::metaparse::token<token_name>,
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+            mpllibs::metaparse::token<token_name>,
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
+            mpllibs::metaparse::token<token_name>
+          >,
+          src_evt_guard_action_transform
+        >
+        src_evt_guard_action;
+
+    // anonymous transitions
+    // anonymous transition with everything "src [guard] / action -> tgt"
+    struct src_guard_action_tgt_transform
+    {
+        typedef src_guard_action_tgt_transform type;
+
+        template <class ResultOfSequence>
+        struct apply :
+        boost::msm::front::Row<
+          typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+          boost::msm::front::none,
+          typename boost::mpl::at_c<ResultOfSequence, 8>::type,
+          typename boost::mpl::at_c<ResultOfSequence, 5>::type,
+          typename boost::mpl::at_c<ResultOfSequence, 2>::type
+        >
+        {};
+    };
+    typedef
+      mpllibs::metaparse::transform<
+        mpllibs::metaparse::sequence<
+          // metaparse::token is used to consume whitespaces after token_name
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
+          mpllibs::metaparse::token<token_name>
+        >,
+        src_guard_action_tgt_transform
+      >
+      src_guard_action_tgt;
+
+    // anonymous transition without guard "src / action -> tgt"
+    struct src_action_tgt_transform
+    {
+      typedef src_action_tgt_transform type;
+
+      template <class ResultOfSequence>
+      struct apply :
+      boost::msm::front::Row<
+        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+        boost::msm::front::none,
+        typename boost::mpl::at_c<ResultOfSequence, 5>::type,
+        typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+        boost::msm::front::none
+      >
+      {};
+    };
+    typedef
+    mpllibs::metaparse::transform<
+      mpllibs::metaparse::sequence<
+        // metaparse::token is used to consume whitespaces after token_name
+        mpllibs::metaparse::token<token_name>,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
+        mpllibs::metaparse::token<token_name>,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
+        mpllibs::metaparse::token<token_name>
+      >,
+      src_action_tgt_transform
+    >
+    src_action_tgt;
+
+    // anonymous transition without action "src [guard] -> tgt"
+    struct src_guard_tgt_transform
+    {
+        typedef src_guard_tgt_transform type;
+
+        template <class ResultOfSequence>
+        struct apply :
+        boost::msm::front::Row<
+          typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+          boost::msm::front::none,
+          typename boost::mpl::at_c<ResultOfSequence, 6>::type,
+          boost::msm::front::none,
+          typename boost::mpl::at_c<ResultOfSequence, 2>::type
+        >
+        {};
+    };
+    typedef
+      mpllibs::metaparse::transform<
+        mpllibs::metaparse::sequence<
+          // metaparse::token is used to consume whitespaces after token_name
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
+          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
+          mpllibs::metaparse::token<token_name>
+        >,
+        src_guard_tgt_transform
+      >
+      src_guard_tgt;
+
+    // anonymous transition without guard or action "src -> tgt"
+    struct src_tgt_transform
+    {
+      typedef src_tgt_transform type;
+
+      template <class ResultOfSequence>
+      struct apply :
+      boost::msm::front::Row<
+        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+        boost::msm::front::none,
+        typename boost::mpl::at_c<ResultOfSequence, 3>::type,
+        boost::msm::front::none,
+        boost::msm::front::none
+      >
+      {};
+    };
+    typedef
+    mpllibs::metaparse::transform<
+      mpllibs::metaparse::sequence<
+        // metaparse::token is used to consume whitespaces after token_name
+        mpllibs::metaparse::token<token_name>,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
+        mpllibs::metaparse::token<token_name>
+      >,
+      src_tgt_transform
+    >
+    src_tgt;
 
 // token_name is the start symbol of the grammar
 typedef mpllibs::metaparse::build_parser<
   mpllibs::metaparse::any_one_of<
+    // transitions
     src_evt_guard_action_tgt,
     src_evt_action_tgt,
     src_evt_guard_tgt,
     src_evt_tgt,
-    src_evt
+    // internal transitions
+    src_evt_guard_action,
+    src_evt_action,
+    src_evt_guard,
+    src_evt,
+    // anonymous transitions
+    src_guard_action_tgt,
+    src_action_tgt,
+    src_guard_tgt,
+    src_tgt
   >
 > row_parser;
 
