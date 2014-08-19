@@ -21,6 +21,7 @@
 #include <mpllibs/metaparse/token.hpp>
 #include <mpllibs/metaparse/transform.hpp>
 #include <mpllibs/metaparse/string.hpp>
+#include <mpllibs/metaparse/middle_of.hpp>
 
 #include <mpllibs/metaparse/any_one_of.hpp>
 #include <mpllibs/metaparse/build_parser.hpp>
@@ -32,6 +33,7 @@
 #include <boost/msm/front/functor_row.hpp>
 #include <boost/msm/front/states.hpp>
 #include <boost/msm/front/completion_event.hpp>
+#include <boost/msm/front/euml/operator.hpp>
 
 namespace boost { namespace msm { namespace front { namespace euml2
 {
@@ -103,6 +105,72 @@ struct make_euml2_event<
 {
     typedef boost::any type;
 };
+
+// guard grammar
+// [guard op guard] where op=&& || ! etc.
+struct guard_and_transform
+{
+    typedef guard_and_transform type;
+
+    template <class ResultOfSequence>
+    struct apply :
+    boost::msm::front::euml::And_<
+      boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+      boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 3>::type>
+    >
+    {};
+};
+typedef
+    mpllibs::metaparse::sequence<
+        mpllibs::metaparse::token<token_name>,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >,
+        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >,
+        mpllibs::metaparse::token<token_name>
+  > guard_and_sequence;
+
+typedef
+    mpllibs::metaparse::any_one_of<
+      guard_and_sequence,
+      mpllibs::metaparse::token<token_name>
+    >
+    guard_matching;
+
+typedef
+  mpllibs::metaparse::transform<
+    mpllibs::metaparse::sequence<
+      mpllibs::metaparse::token<token_name>,
+      mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >,
+      mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >,
+      mpllibs::metaparse::token<token_name>
+    >,
+    guard_and_transform
+  >
+  guard_and;
+
+  // terminal element
+  struct guard_terminal_transform
+  {
+      typedef guard_terminal_transform type;
+
+      template <class ResultOfSequence>
+      struct apply :
+      boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 0>::type>
+      {};
+  };
+  typedef
+    mpllibs::metaparse::transform<
+        mpllibs::metaparse::token<token_name>,
+        guard_terminal_transform
+    >
+    guard_terminal;
+
+  // token_name is the start symbol of the grammar
+  typedef mpllibs::metaparse::build_parser<
+    mpllibs::metaparse::any_one_of<
+      guard_and,
+      guard_terminal
+    >
+  > guard_grammar;
 
 // transition without guard or action "src + evt -> tgt"
 struct src_evt_tgt_transform
@@ -178,9 +246,9 @@ typedef
         boost::msm::front::Row<
           boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
           typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
-          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 8>::type>,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 6>::type>,
           typename boost::msm::front::none,
-          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 3>::type>
         >
         {};
     };
@@ -191,9 +259,11 @@ typedef
           mpllibs::metaparse::token<token_name>,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
           mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
-          mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+          mpllibs::metaparse::middle_of<
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+              mpllibs::metaparse::token<token_name>,
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+          >,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
           mpllibs::metaparse::token<token_name>
@@ -212,9 +282,9 @@ typedef
           boost::msm::front::Row<
             boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
             typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
-            boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 10>::type>,
-            boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 7>::type>,
-            boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
+            boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 8>::type>,
+            boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 5>::type>,
+            boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 3>::type>
           >
           {};
       };
@@ -225,9 +295,11 @@ typedef
             mpllibs::metaparse::token<token_name>,
             mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
             mpllibs::metaparse::token<token_name>,
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
-            mpllibs::metaparse::token<token_name>,
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+            mpllibs::metaparse::middle_of<
+                mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+                mpllibs::metaparse::token<token_name>,
+                mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+            >,
             mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
             mpllibs::metaparse::token<token_name>,
             mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
@@ -309,7 +381,7 @@ typedef
           typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
           typename boost::msm::front::none,
           typename boost::msm::front::none,
-          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 3>::type>
         >
         {};
     };
@@ -320,9 +392,11 @@ typedef
           mpllibs::metaparse::token<token_name>,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
           mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
-          mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+          mpllibs::metaparse::middle_of<
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+              mpllibs::metaparse::token<token_name>,
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+          >
         >,
         src_evt_guard_transform
       >
@@ -339,8 +413,8 @@ typedef
             boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
             typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
             boost::msm::front::none,
-            boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 7>::type>,
-            boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
+            boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 5>::type>,
+            boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 3>::type>
           >
           {};
       };
@@ -351,9 +425,11 @@ typedef
             mpllibs::metaparse::token<token_name>,
             mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
             mpllibs::metaparse::token<token_name>,
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
-            mpllibs::metaparse::token<token_name>,
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+            mpllibs::metaparse::middle_of<
+                mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+                mpllibs::metaparse::token<token_name>,
+                mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+            >,
             mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
             mpllibs::metaparse::token<token_name>
           >,
@@ -372,9 +448,9 @@ typedef
         boost::msm::front::Row<
           boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
           boost::msm::front::none,
-          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 8>::type>,
-          boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 5>::type>,
-          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 6>::type>,
+          boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 3>::type>,
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 1>::type>
         >
         {};
     };
@@ -383,9 +459,11 @@ typedef
         mpllibs::metaparse::sequence<
           // metaparse::token is used to consume whitespaces after token_name
           mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
-          mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+          mpllibs::metaparse::middle_of<
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+              mpllibs::metaparse::token<token_name>,
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+          >,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
           mpllibs::metaparse::token<token_name>,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
@@ -437,9 +515,9 @@ typedef
         boost::msm::front::Row<
           boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
           boost::msm::front::none,
-          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 6>::type>,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 4>::type>,
           boost::msm::front::none,
-          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 1>::type>
         >
         {};
     };
@@ -448,9 +526,11 @@ typedef
         mpllibs::metaparse::sequence<
           // metaparse::token is used to consume whitespaces after token_name
           mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
-          mpllibs::metaparse::token<token_name>,
-          mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >,
+          mpllibs::metaparse::middle_of<
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+              mpllibs::metaparse::token<token_name>,
+              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+          >,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
           mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
           mpllibs::metaparse::token<token_name>
