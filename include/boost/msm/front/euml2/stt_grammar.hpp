@@ -23,11 +23,11 @@
 #include <mpllibs/metaparse/string.hpp>
 
 #include <mpllibs/metaparse/any_one_of.hpp>
-
 #include <mpllibs/metaparse/build_parser.hpp>
 
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/at.hpp>
+#include <boost/any.hpp>
 
 #include <boost/msm/front/functor_row.hpp>
 #include <boost/msm/front/states.hpp>
@@ -38,7 +38,8 @@ namespace boost { namespace msm { namespace front { namespace euml2
 typedef
   mpllibs::metaparse::any_one_of1<
     mpllibs::metaparse::alphanum,
-    mpllibs::metaparse::lit_c<'_'>
+    mpllibs::metaparse::lit_c<'_'>,
+    mpllibs::metaparse::lit_c<'*'>
   >
   token_name;
 
@@ -508,6 +509,13 @@ typedef mpllibs::metaparse::build_parser<
   struct make_euml2_event_or_none<boost::msm::front::none>
   {
       typedef boost::msm::front::none type;
+  };
+  template <>
+  struct make_euml2_event_or_none<
+          typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING("*")>::type
+  >
+  {
+      typedef boost::any type;
   };
   template <class T>
   struct make_euml2_action_or_none

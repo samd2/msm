@@ -40,6 +40,7 @@ namespace  // Concrete FSM implementation
         struct transition_table : mpl::vector<
         //     +---------------------------------------------------------------------------------------+
         EUML2_ROW("State1 + Event1 / doIt       -> State2"),
+        EUML2_ROW("State1 + *      / doIt       -> State2"),
         EUML2_ROW("State2 + Event2 [ok] / doIt  -> State1"),
         EUML2_ROW("State2 + Event2 [noway]      -> State1")
         //     +---------------------------------------------------------------------------------------+
@@ -76,6 +77,8 @@ namespace  // Concrete FSM implementation
         p.process_event(BOOST_MSM_EUML2_EVENT("Event1")()); pstate(p);
         // go to State1
         p.process_event(BOOST_MSM_EUML2_EVENT("Event2")()); pstate(p);
+        // go to State2 using kleene (* = any) event
+        p.process_event(BOOST_MSM_EUML2_EVENT("*")()); pstate(p);
         std::cout << "stop fsm" << std::endl;
         p.stop();
 

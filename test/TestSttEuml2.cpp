@@ -14,7 +14,6 @@
 #define MPLLIBS_LIMIT_STRING_SIZE BOOST_MPL_LIMIT_STRING_SIZE
 #include <boost/msm/front/euml2/stt_grammar.hpp>
 #include <typeinfo>
-
 #include <boost/test/unit_test.hpp>
 
 
@@ -93,6 +92,13 @@ BOOST_AUTO_TEST_CASE( test_stt )
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo -> tgt")::Evt)== typeid(boost::msm::front::none),"evt not none");
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo -> tgt")::Action)== typeid(boost::msm::front::none),"action not none");
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo -> tgt")::Guard)== typeid(boost::msm::front::none),"guard not none");
+
+    //kleene event
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foobar")::Target)== typeid(BOOST_MSM_EUML2_STATE("foobar")),"target not foobar");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("bla + * [aa] / bb -> foo")::Source)== typeid(BOOST_MSM_EUML2_STATE("bla")),"src not bla");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Evt)== typeid(boost::any),"evt not kleene");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Action)== typeid(BOOST_MSM_EUML2_ACTION("bb")),"action not bb");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Guard)== typeid(BOOST_MSM_EUML2_GUARD("aa")),"guard not aa");
 }
 
 
