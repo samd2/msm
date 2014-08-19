@@ -43,6 +43,67 @@ typedef
   >
   token_name;
 
+// parses only names
+typedef mpllibs::metaparse::build_parser<
+  token_name
+> name_parser;
+
+template <class Name>
+struct euml2_state: public msm::front::state<>
+{
+    typedef Name name_type;
+    template <class Event, class Fsm>
+    void on_entry(Event const&, Fsm&)
+    {
+    }
+    template <class Event, class Fsm>
+    void on_exit(Event const&, Fsm&)
+    {
+    }
+};
+template <class Name>
+struct euml2_event
+{
+    typedef Name name_type;
+};
+template <class Name>
+struct euml2_action
+{
+    typedef Name name_type;
+    template <class EVT,class FSM,class SourceState,class TargetState>
+    void operator()(EVT const&, FSM&,SourceState& ,TargetState& )
+    {
+    }
+};
+template <class Name>
+struct euml2_guard
+{
+    typedef Name name_type;
+    template <class EVT,class FSM,class SourceState,class TargetState>
+    bool operator()(EVT const&, FSM&,SourceState& ,TargetState& )
+    {
+        return true;
+    }
+};
+
+template <class T>
+struct make_euml2_event
+{
+    typedef boost::msm::front::euml2::euml2_event<T> type;
+};
+template <>
+struct make_euml2_event<boost::msm::front::none>
+{
+    typedef boost::msm::front::none type;
+};
+template <>
+struct make_euml2_event<
+        typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING("*")>::type
+>
+{
+    typedef boost::any type;
+};
+
 // transition without guard or action "src + evt -> tgt"
 struct src_evt_tgt_transform
 {
@@ -51,9 +112,9 @@ struct src_evt_tgt_transform
     template <class ResultOfSequence>
     struct apply :
     boost::msm::front::Row<
-      typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-      typename boost::mpl::at_c<ResultOfSequence, 2>::type,
-      typename boost::mpl::at_c<ResultOfSequence, 5>::type,
+      boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+      typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
+      boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 5>::type>,
       typename boost::msm::front::none,
       typename boost::msm::front::none
     >
@@ -82,10 +143,10 @@ typedef
       template <class ResultOfSequence>
       struct apply :
       boost::msm::front::Row<
-        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-        typename boost::mpl::at_c<ResultOfSequence, 2>::type,
-        typename boost::mpl::at_c<ResultOfSequence, 7>::type,
-        typename boost::mpl::at_c<ResultOfSequence, 4>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+        typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 7>::type>,
+        boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 4>::type>,
         typename boost::msm::front::none
       >
       {};
@@ -115,11 +176,11 @@ typedef
         template <class ResultOfSequence>
         struct apply :
         boost::msm::front::Row<
-          typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-          typename boost::mpl::at_c<ResultOfSequence, 2>::type,
-          typename boost::mpl::at_c<ResultOfSequence, 8>::type,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+          typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 8>::type>,
           typename boost::msm::front::none,
-          typename boost::mpl::at_c<ResultOfSequence, 4>::type
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
         >
         {};
     };
@@ -149,11 +210,11 @@ typedef
           template <class ResultOfSequence>
           struct apply :
           boost::msm::front::Row<
-            typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-            typename boost::mpl::at_c<ResultOfSequence, 2>::type,
-            typename boost::mpl::at_c<ResultOfSequence, 10>::type,
-            typename boost::mpl::at_c<ResultOfSequence, 7>::type,
-            typename boost::mpl::at_c<ResultOfSequence, 4>::type
+            boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+            typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
+            boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 10>::type>,
+            boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 7>::type>,
+            boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
           >
           {};
       };
@@ -186,8 +247,8 @@ struct src_evt_transform
     template <class ResultOfSequence>
     struct apply :
       boost::msm::front::Row<
-        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-        typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+        typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
         typename boost::msm::front::none,
         typename boost::msm::front::none,
         typename boost::msm::front::none
@@ -214,10 +275,10 @@ typedef
       template <class ResultOfSequence>
       struct apply :
       boost::msm::front::Row<
-        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-        typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+        typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
         typename boost::msm::front::none,
-        typename boost::mpl::at_c<ResultOfSequence, 4>::type,
+        boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 4>::type>,
         typename boost::msm::front::none
       >
       {};
@@ -244,11 +305,11 @@ typedef
         template <class ResultOfSequence>
         struct apply :
         boost::msm::front::Row<
-          typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-          typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+          typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
           typename boost::msm::front::none,
           typename boost::msm::front::none,
-          typename boost::mpl::at_c<ResultOfSequence, 4>::type
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
         >
         {};
     };
@@ -275,11 +336,11 @@ typedef
           template <class ResultOfSequence>
           struct apply :
           boost::msm::front::Row<
-            typename boost::mpl::at_c<ResultOfSequence, 0>::type,
-            typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+            boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+            typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
             boost::msm::front::none,
-            typename boost::mpl::at_c<ResultOfSequence, 7>::type,
-            typename boost::mpl::at_c<ResultOfSequence, 4>::type
+            boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 7>::type>,
+            boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 4>::type>
           >
           {};
       };
@@ -309,11 +370,11 @@ typedef
         template <class ResultOfSequence>
         struct apply :
         boost::msm::front::Row<
-          typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
           boost::msm::front::none,
-          typename boost::mpl::at_c<ResultOfSequence, 8>::type,
-          typename boost::mpl::at_c<ResultOfSequence, 5>::type,
-          typename boost::mpl::at_c<ResultOfSequence, 2>::type
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 8>::type>,
+          boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 5>::type>,
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>
         >
         {};
     };
@@ -343,10 +404,10 @@ typedef
       template <class ResultOfSequence>
       struct apply :
       boost::msm::front::Row<
-        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
         boost::msm::front::none,
-        typename boost::mpl::at_c<ResultOfSequence, 5>::type,
-        typename boost::mpl::at_c<ResultOfSequence, 2>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 5>::type>,
+        boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 2>::type>,
         boost::msm::front::none
       >
       {};
@@ -374,11 +435,11 @@ typedef
         template <class ResultOfSequence>
         struct apply :
         boost::msm::front::Row<
-          typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
           boost::msm::front::none,
-          typename boost::mpl::at_c<ResultOfSequence, 6>::type,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 6>::type>,
           boost::msm::front::none,
-          typename boost::mpl::at_c<ResultOfSequence, 2>::type
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>
         >
         {};
     };
@@ -406,9 +467,9 @@ typedef
       template <class ResultOfSequence>
       struct apply :
       boost::msm::front::Row<
-        typename boost::mpl::at_c<ResultOfSequence, 0>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
         boost::msm::front::none,
-        typename boost::mpl::at_c<ResultOfSequence, 3>::type,
+        boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 3>::type>,
         boost::msm::front::none,
         boost::msm::front::none
       >
@@ -448,105 +509,10 @@ typedef mpllibs::metaparse::build_parser<
   >
 > row_parser;
 
-  // parses only names
-  typedef mpllibs::metaparse::build_parser<
-    token_name
-  > name_parser;
-
-  template <class Name>
-  struct euml2_state: public msm::front::state<>
-  {
-      typedef Name name_type;
-      template <class Event, class Fsm>
-      void on_entry(Event const&, Fsm&)
-      {
-      }
-      template <class Event, class Fsm>
-      void on_exit(Event const&, Fsm&)
-      {
-      }
-  };
-  template <class Name>
-  struct euml2_event
-  {
-      typedef Name name_type;
-  };
-  template <class Name>
-  struct euml2_action
-  {
-      typedef Name name_type;
-      template <class EVT,class FSM,class SourceState,class TargetState>
-      void operator()(EVT const&, FSM&,SourceState& ,TargetState& )
-      {
-      }
-  };
-  template <class Name>
-  struct euml2_guard
-  {
-      typedef Name name_type;
-      template <class EVT,class FSM,class SourceState,class TargetState>
-      bool operator()(EVT const&, FSM&,SourceState& ,TargetState& )
-      {
-          return true;
-      }
-  };
-  template <class T>
-  struct make_euml2_state_or_none
-  {
-      typedef boost::msm::front::euml2::euml2_state<T> type;
-  };
-  template <>
-  struct make_euml2_state_or_none<boost::msm::front::none>
-  {
-      typedef boost::msm::front::none type;
-  };
-  template <class T>
-  struct make_euml2_event_or_none
-  {
-      typedef boost::msm::front::euml2::euml2_event<T> type;
-  };
-  template <>
-  struct make_euml2_event_or_none<boost::msm::front::none>
-  {
-      typedef boost::msm::front::none type;
-  };
-  template <>
-  struct make_euml2_event_or_none<
-          typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING("*")>::type
-  >
-  {
-      typedef boost::any type;
-  };
-  template <class T>
-  struct make_euml2_action_or_none
-  {
-      typedef boost::msm::front::euml2::euml2_action<T> type;
-  };
-  template <>
-  struct make_euml2_action_or_none<boost::msm::front::none>
-  {
-      typedef boost::msm::front::none type;
-  };
-  template <class T>
-  struct make_euml2_guard_or_none
-  {
-      typedef boost::msm::front::euml2::euml2_guard<T> type;
-  };
-  template <>
-  struct make_euml2_guard_or_none<boost::msm::front::none>
-  {
-      typedef boost::msm::front::none type;
-  };
   template <class RawRow>
   struct make_msm_transition
   {
-      typedef boost::msm::front::Row<
-                  typename boost::msm::front::euml2::make_euml2_state_or_none<typename boost::mpl::at_c<RawRow,0>::type::Source>::type,
-                  typename boost::msm::front::euml2::make_euml2_event_or_none<typename boost::mpl::at_c<RawRow,0>::type::Evt>::type,
-                  typename boost::msm::front::euml2::make_euml2_state_or_none<typename boost::mpl::at_c<RawRow,0>::type::Target>::type,
-                  typename boost::msm::front::euml2::make_euml2_action_or_none<typename boost::mpl::at_c<RawRow,0>::type::Action>::type,
-                  typename boost::msm::front::euml2::make_euml2_guard_or_none<typename boost::mpl::at_c<RawRow,0>::type::Guard>::type
-      > type;
+      typedef typename boost::mpl::at_c<RawRow,0>::type type;
   };
 }}}}
 // just for debugging purposes
