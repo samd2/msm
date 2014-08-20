@@ -23,6 +23,8 @@
 #include <mpllibs/metaparse/last_of.hpp>
 #include <mpllibs/metaparse/any_one_of.hpp>
 #include <mpllibs/metaparse/build_parser.hpp>
+#include <mpllibs/metaparse/one_of.hpp>
+#include <mpllibs/metaparse/return_.hpp>
 
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/at.hpp>
@@ -112,7 +114,7 @@ struct guard_and_transform
     struct apply :
     boost::msm::front::euml::And_<
       boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
-      boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 3>::type>
+      boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>
     >
     {};
 };
@@ -125,7 +127,7 @@ typedef
   > guard_and_sequence;
 
 struct guard_exp: public
-    mpllibs::metaparse::any_one_of1<
+    mpllibs::metaparse::one_of<
       guard_and_sequence,
       mpllibs::metaparse::token<token_name>
     >
@@ -571,7 +573,70 @@ typedef
     >
     src_tgt;
 
-// token_name is the start symbol of the grammar
+    // test with only one parser and optional
+    struct transition_transform
+    {
+        typedef transition_transform type;
+
+        template <class ResultOfSequence>
+        struct apply :
+        boost::msm::front::Row<
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
+          typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 1>::type>::type,
+          boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 4>::type>,
+          boost::msm::front::euml2::euml2_action<typename boost::mpl::at_c<ResultOfSequence, 3>::type>,
+          boost::msm::front::euml2::euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>
+        >
+        {};
+    };
+    typedef
+      mpllibs::metaparse::transform<
+        mpllibs::metaparse::sequence<
+          // metaparse::token is used to consume whitespaces after token_name
+          mpllibs::metaparse::token<token_name>,
+          mpllibs::metaparse::one_of<
+              mpllibs::metaparse::last_of<
+                  mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
+                  mpllibs::metaparse::token<token_name>
+              >,
+              mpllibs::metaparse::return_<boost::msm::front::none>
+          >,
+          mpllibs::metaparse::one_of<
+              mpllibs::metaparse::middle_of<
+                  mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
+                  mpllibs::metaparse::token<token_name>,
+                  mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
+              >,
+              mpllibs::metaparse::return_<boost::msm::front::none>
+          >,
+          mpllibs::metaparse::one_of<
+              mpllibs::metaparse::last_of<
+                  mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
+                  mpllibs::metaparse::token<token_name>
+              >,
+              mpllibs::metaparse::return_<boost::msm::front::none>
+          >,
+          mpllibs::metaparse::one_of<
+              mpllibs::metaparse::last_of<
+                  mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
+                  mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
+                  mpllibs::metaparse::token<token_name>
+              >,
+              mpllibs::metaparse::return_<boost::msm::front::none>
+          >
+        >,
+        transition_transform
+      >
+      transition_parser;
+
+//does not compile
+//typedef mpllibs::metaparse::build_parser<transition_parser> row_parser;
+//template <class RawRow>
+//struct make_msm_transition
+//{
+//  typedef RawRow type;
+//};
+
 typedef mpllibs::metaparse::build_parser<
   mpllibs::metaparse::any_one_of<
     // transitions
