@@ -16,6 +16,7 @@ namespace boost { namespace msm { namespace front
 
     struct none
     {
+        typedef none type;
         // make every event convertible to none.
         // to support standard-conform implementation of pseudo exits.
         none(){}
