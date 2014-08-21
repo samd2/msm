@@ -165,23 +165,17 @@ struct guard_and_transform
     >
     {};
 };
-//struct guard_exp;
-//typedef
-//    mpllibs::metaparse::sequence<
-//        guard_exp,
-//        mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >,
-//        guard_exp
-//  > guard_and_sequence;
+typedef mpllibs::metaparse::sequence<
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'|'> >,
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'|'> >
+> or_token;
+typedef mpllibs::metaparse::sequence<
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >,
+            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >
+> and_token;
 
-//struct guard_exp: public
-//    mpllibs::metaparse::one_of<
-//      guard_and_sequence,
-//      mpllibs::metaparse::token<token_name>
-//    >
-//    {};
-
-typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'|'> > or_token;
-typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> > and_token;
+//typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'|'> > or_token;
+//typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> > and_token;
 
 //struct eval_terminal
 //{

@@ -104,16 +104,16 @@ BOOST_AUTO_TEST_CASE( test_stt )
     using boost::msm::front::euml::And_;
     using boost::msm::front::Row;
     // guard syntax
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa | cc] / bb -> foo")::Guard)==
-                        typeid(Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa | cc");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa & cc] / bb -> foo")::Guard)==
-                        typeid(And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa & cc");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa & cc | dd] / bb -> foo")::Guard)==
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa || cc] / bb -> foo")::Guard)==
+                        typeid(Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa || cc");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa && cc] / bb -> foo")::Guard)==
+                        typeid(And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa && cc");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa && cc || dd] / bb -> foo")::Guard)==
                         typeid(Or_<And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>,BOOST_MSM_EUML2_GUARD("dd")>),
-                        "guard not (aa & cc) | dd");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa | cc | dd] / bb -> foo")::Guard)==
+                        "guard not (aa && cc) || dd");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa || cc || dd] / bb -> foo")::Guard)==
                         typeid(Or_<Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>,BOOST_MSM_EUML2_GUARD("dd")>),
-                        "guard not (aa | cc) | dd");
+                        "guard not (aa || cc) || dd");
 }
 
 
