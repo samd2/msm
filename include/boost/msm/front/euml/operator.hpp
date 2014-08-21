@@ -29,6 +29,7 @@ namespace boost { namespace msm { namespace front { namespace euml
 template <class T1,class T2>
 struct Or_ : euml_action<Or_<T1,T2> >
 {
+    typedef Or_ type;
     template <class EVT,class FSM,class SourceState,class TargetState>
     bool operator()(EVT const& evt, FSM& fsm,SourceState& src,TargetState& tgt)
     {
@@ -43,6 +44,7 @@ struct Or_ : euml_action<Or_<T1,T2> >
 template <class T1,class T2>
 struct And_ : euml_action<And_<T1,T2> >
 {
+    typedef And_ type;
     template <class EVT,class FSM,class SourceState,class TargetState>
     bool operator()(EVT const& evt, FSM& fsm,SourceState& src,TargetState& tgt)
     {
