@@ -99,6 +99,21 @@ BOOST_AUTO_TEST_CASE( test_stt )
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Evt)== typeid(boost::any),"evt not kleene");
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Action)== typeid(BOOST_MSM_EUML2_ACTION("bb")),"action not bb");
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Guard)== typeid(BOOST_MSM_EUML2_GUARD("aa")),"guard not aa");
+
+    using boost::msm::front::euml::Or_;
+    using boost::msm::front::euml::And_;
+    using boost::msm::front::Row;
+    // guard syntax
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa | cc] / bb -> foo")::Guard)==
+                        typeid(Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa | cc");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa & cc] / bb -> foo")::Guard)==
+                        typeid(And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa & cc");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa & cc | dd] / bb -> foo")::Guard)==
+                        typeid(Or_<And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>,BOOST_MSM_EUML2_GUARD("dd")>),
+                        "guard not (aa & cc) | dd");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa | cc | dd] / bb -> foo")::Guard)==
+                        typeid(Or_<Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>,BOOST_MSM_EUML2_GUARD("dd")>),
+                        "guard not (aa | cc) | dd");
 }
 
 
