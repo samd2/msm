@@ -174,17 +174,6 @@ typedef mpllibs::metaparse::sequence<
             mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >
 > and_token;
 
-//typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'|'> > or_token;
-//typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> > and_token;
-
-//struct eval_terminal
-//{
-//  template <class C, class State>
-//  struct apply :
-//    boost::msm::front::euml2::euml2_guard<typename State::type/*typename boost::mpl::back<C>::type*/>
-//  {};
-//};
-
 struct eval_or
 {
   template <class C, class State>
@@ -235,7 +224,6 @@ struct or_exp :
           typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 1>::type>::type,
           typename boost::msm::front::euml2::make_euml2_state<typename boost::mpl::at_c<ResultOfSequence, 4>::type>::type,
           typename boost::msm::front::euml2::make_euml2_action<typename boost::mpl::at_c<ResultOfSequence, 3>::type>::type,
-          //typename boost::mpl::at_c<ResultOfSequence, 2>::type
           typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type
         >
         {};
@@ -255,7 +243,7 @@ struct or_exp :
           mpllibs::metaparse::one_of<
               mpllibs::metaparse::middle_of<
                   mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
-                  or_exp,//mpllibs::metaparse::token<token_name>,
+                  or_exp,
                   mpllibs::metaparse::token<mpllibs::metaparse::lit_c<']'> >
               >,
               mpllibs::metaparse::return_<boost::msm::front::none>
