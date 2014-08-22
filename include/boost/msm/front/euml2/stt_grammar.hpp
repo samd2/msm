@@ -39,12 +39,14 @@
 namespace boost { namespace msm { namespace front { namespace euml2
 {
 typedef
+mpllibs::metaparse::token<
   mpllibs::metaparse::any_one_of1<
     mpllibs::metaparse::alphanum,
     mpllibs::metaparse::lit_c<'_'>,
     mpllibs::metaparse::lit_c<'*'>
   >
-  token_name;
+>
+token_name;
 
 // parses only names
 typedef mpllibs::metaparse::build_parser<
@@ -165,13 +167,17 @@ struct guard_and_transform
     >
     {};
 };
-typedef mpllibs::metaparse::sequence<
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'|'> >,
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'|'> >
+typedef  mpllibs::metaparse::token<
+            mpllibs::metaparse::sequence<
+                mpllibs::metaparse::lit_c<'|'>,
+                mpllibs::metaparse::lit_c<'|'>
+         >
 > or_token;
-typedef mpllibs::metaparse::sequence<
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >,
-            mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'&'> >
+typedef  mpllibs::metaparse::token<
+            mpllibs::metaparse::sequence<
+                mpllibs::metaparse::lit_c<'&'>,
+                mpllibs::metaparse::lit_c<'&'>
+         >
 > and_token;
 
 // this is not working yet
@@ -251,10 +257,10 @@ typedef
               or_exp,
               mpllibs::metaparse::lit_c<')'>
           >,
-          mpllibs::metaparse::token<token_name>
+          token_name
         >
     >,
-    mpllibs::metaparse::token<token_name>,
+    token_name,
     eval_and
   >
   and_exp;
@@ -297,11 +303,11 @@ struct or_exp :
       mpllibs::metaparse::transform<
         mpllibs::metaparse::sequence<
           // metaparse::token is used to consume whitespaces after token_name
-          mpllibs::metaparse::token<token_name>,
+          token_name,
           mpllibs::metaparse::one_of<
               mpllibs::metaparse::last_of<
                   mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
-                  mpllibs::metaparse::token<token_name>
+                  token_name
               >,
               mpllibs::metaparse::return_<boost::msm::front::none>
           >,
@@ -316,7 +322,7 @@ struct or_exp :
           mpllibs::metaparse::one_of<
               mpllibs::metaparse::last_of<
                   mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
-                  mpllibs::metaparse::token<token_name>
+                  token_name
               >,
               mpllibs::metaparse::return_<boost::msm::front::none>
           >,
@@ -324,7 +330,7 @@ struct or_exp :
               mpllibs::metaparse::last_of<
                   mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
                   mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
-                  mpllibs::metaparse::token<token_name>
+                  token_name
               >,
               mpllibs::metaparse::return_<boost::msm::front::none>
           >
