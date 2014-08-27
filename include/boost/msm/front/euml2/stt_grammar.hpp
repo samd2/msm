@@ -142,13 +142,11 @@ struct make_euml2_guard<boost::msm::front::none>
 {
     typedef boost::msm::front::none type;
 };
-template <>
 template <class T1,class T2>
 struct make_euml2_guard<boost::msm::front::euml::Or_<T1,T2>>
 {
     typedef boost::msm::front::euml::Or_<T1,T2> type;
 };
-template <>
 template <class T1,class T2>
 struct make_euml2_guard<boost::msm::front::euml::And_<T1,T2>>
 {
