@@ -178,48 +178,11 @@ typedef  mpllibs::metaparse::token<
          >
 > and_token;
 
-// this is not working yet
-//template <class T, char C>
-//struct is_c : boost::mpl::bool_<T::type::value == C> {};
+typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'('> > open_paren_token;
+typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<')'> > close_paren_token;
 
-//struct eval_and
-//{
-//  template <class C, class State>
-//  struct apply :
-//          boost::mpl::eval_if<
-//            is_c<boost::mpl::at_c<C,1>, '('>,
-//            boost::msm::front::euml::And_<
-//                  typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
-//                  typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::at_c<C,boost::mpl::size<C>::value-1>::type>::type
-//            >,
-//            boost::msm::front::euml::And_<
-//                  typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
-//                  typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::back<C>::type>::type
-//            >
-//    >
-//  {};
-//};
 
-//struct or_exp;
 
-//typedef
-//  mpllibs::metaparse::foldlp<
-//    mpllibs::metaparse::sequence<
-//        and_token,
-//        mpllibs::metaparse::one_of<
-//              mpllibs::metaparse::sequence<
-//          //mpllibs::metaparse::middle_of<
-//              mpllibs::metaparse::lit_c<'('>,
-//              or_exp,
-//              mpllibs::metaparse::lit_c<')'>
-//          >,
-//          mpllibs::metaparse::token<token_name>
-//        >
-//    >,
-//    mpllibs::metaparse::token<token_name>,
-//    eval_and
-//  >
-//  and_exp;
 
 struct eval_or
 {
@@ -245,41 +208,60 @@ struct eval_and
 
 struct or_exp;
 
+typedef mpllibs::metaparse::middle_of<open_paren_token, or_exp, close_paren_token> paren_or_exp;
+typedef mpllibs::metaparse::one_of<token_name, paren_or_exp> simple_exp;
+
 typedef
   mpllibs::metaparse::foldlp<
-    mpllibs::metaparse::sequence<
-        and_token,
-        mpllibs::metaparse::one_of<
-          mpllibs::metaparse::middle_of<
-              mpllibs::metaparse::lit_c<'('>,
-              or_exp,
-              mpllibs::metaparse::lit_c<')'>
-          >,
-          token_name
-        >
-    >,
-    token_name,
+    mpllibs::metaparse::sequence<and_token,simple_exp>,
+    simple_exp,
     eval_and
   >
   and_exp;
 
 struct or_exp :
   mpllibs::metaparse::foldlp<
-    mpllibs::metaparse::sequence<
-        or_token,
-        mpllibs::metaparse::one_of<
-            mpllibs::metaparse::middle_of<
-                mpllibs::metaparse::lit_c<'('>,
-                and_exp,
-                mpllibs::metaparse::lit_c<')'>
-            >,
-            and_exp
-        >
-    >,
+    mpllibs::metaparse::sequence<or_token,and_exp>,
     and_exp,
     eval_or
   >
 {};
+
+//typedef
+//  mpllibs::metaparse::foldlp<
+//    mpllibs::metaparse::sequence<
+//        and_token,
+//        mpllibs::metaparse::one_of<
+//          mpllibs::metaparse::middle_of<
+//              mpllibs::metaparse::lit_c<'('>,
+//              or_exp,
+//              mpllibs::metaparse::lit_c<')'>
+//          >,
+//          token_name
+//        >
+//    >,
+//    token_name,
+//    eval_and
+//  >
+//  and_exp;
+
+//struct or_exp :
+//  mpllibs::metaparse::foldlp<
+//    mpllibs::metaparse::sequence<
+//        or_token,
+//        mpllibs::metaparse::one_of<
+//            mpllibs::metaparse::middle_of<
+//                mpllibs::metaparse::lit_c<'('>,
+//                and_exp,
+//                mpllibs::metaparse::lit_c<')'>
+//            >,
+//            and_exp
+//        >
+//    >,
+//    and_exp,
+//    eval_or
+//  >
+//{};
 
     // test with only one parser and optional
     struct transition_transform
