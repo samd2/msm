@@ -59,6 +59,7 @@ struct And_ : euml_action<And_<T1,T2> >
 template <class T1>
 struct Not_ : euml_action<Not_<T1> >
 {
+    typedef Not_ type;
     template <class EVT,class FSM,class SourceState,class TargetState>
     bool operator()(EVT const& evt, FSM& fsm,SourceState& src,TargetState& tgt)
     {
@@ -896,6 +897,7 @@ struct Bitwise_Or_ : euml_action<Bitwise_Or_<T1,T2> >
 template <class T1,class T2>
 struct Bitwise_Xor_ : euml_action<Bitwise_Xor_<T1,T2> >
 {
+    typedef Bitwise_Xor_ type;
     template <class Event,class FSM,class STATE >
     struct state_action_result 
     {
@@ -1513,6 +1515,7 @@ struct GreaterEqual_ : euml_action<GreaterEqual_<T1,T2> >
 template <class T1,class T2>
 struct EqualTo_ : euml_action<EqualTo_<T1,T2> >
 {
+    typedef EqualTo_ type;
     template <class Event,class FSM,class STATE >
     struct state_action_result 
     {
@@ -1539,6 +1542,7 @@ struct EqualTo_ : euml_action<EqualTo_<T1,T2> >
 template <class T1,class T2>
 struct NotEqualTo_ : euml_action<NotEqualTo_<T1,T2> >
 {
+    typedef NotEqualTo_ type;
     template <class Event,class FSM,class STATE >
     struct state_action_result 
     {

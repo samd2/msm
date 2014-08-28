@@ -152,6 +152,21 @@ struct make_euml2_guard<boost::msm::front::euml::And_<T1,T2>>
 {
     typedef boost::msm::front::euml::And_<T1,T2> type;
 };
+template <class T1,class T2>
+struct make_euml2_guard<boost::msm::front::euml::EqualTo_<T1,T2>>
+{
+    typedef boost::msm::front::euml::EqualTo_<T1,T2> type;
+};
+template <class T1,class T2>
+struct make_euml2_guard<boost::msm::front::euml::NotEqualTo_<T1,T2>>
+{
+    typedef boost::msm::front::euml::NotEqualTo_<T1,T2> type;
+};
+template <class T1>
+struct make_euml2_guard<boost::msm::front::euml::Not_<T1>>
+{
+    typedef boost::msm::front::euml::Not_<T1> type;
+};
 
 struct guard_and_transform
 {
@@ -180,9 +195,19 @@ typedef  mpllibs::metaparse::token<
 
 typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'('> > open_paren_token;
 typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<')'> > close_paren_token;
-
-
-
+typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'!'> > not_token;
+typedef  mpllibs::metaparse::token<
+            mpllibs::metaparse::sequence<
+                mpllibs::metaparse::lit_c<'='>,
+                mpllibs::metaparse::lit_c<'='>
+         >
+> equal_to_token;
+typedef  mpllibs::metaparse::token<
+            mpllibs::metaparse::sequence<
+                mpllibs::metaparse::lit_c<'!'>,
+                mpllibs::metaparse::lit_c<'='>
+         >
+> not_equal_to_token;
 
 struct eval_or
 {
@@ -194,7 +219,6 @@ struct eval_or
     >
   {};
 };
-
 struct eval_and
 {
   template <class C, class State>
@@ -205,6 +229,36 @@ struct eval_and
     >
   {};
 };
+struct eval_equal_to
+{
+  template <class C, class State>
+  struct apply :
+    boost::msm::front::euml::EqualTo_<
+          typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
+          typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::back<C>::type>::type
+    >
+  {};
+};
+struct eval_not_equal_to
+{
+  template <class C, class State>
+  struct apply :
+    boost::msm::front::euml::NotEqualTo_<
+          typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
+          typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::back<C>::type>::type
+    >
+  {};
+};
+struct eval_not
+{
+  template <class C, class State>
+  struct apply :
+    boost::msm::front::euml::Not_<
+          typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::back<C>::type>::type
+    >
+  {};
+};
+
 
 struct or_exp;
 
@@ -212,19 +266,43 @@ typedef mpllibs::metaparse::middle_of<open_paren_token, or_exp, close_paren_toke
 typedef mpllibs::metaparse::one_of<token_name, paren_or_exp> simple_exp;
 
 typedef
-  mpllibs::metaparse::foldlp<
-    mpllibs::metaparse::sequence<and_token,simple_exp>,
-    simple_exp,
-    eval_and
-  >
-  and_exp;
+    mpllibs::metaparse::foldlp<
+        mpllibs::metaparse::sequence<not_token,simple_exp>,
+        simple_exp,
+        eval_not
+    >
+not_exp;
+
+typedef
+    mpllibs::metaparse::foldlp<
+        mpllibs::metaparse::sequence<equal_to_token,simple_exp>,
+        simple_exp,
+        eval_equal_to
+    >
+equal_to_exp;
+
+typedef
+    mpllibs::metaparse::foldlp<
+        mpllibs::metaparse::sequence<not_equal_to_token,equal_to_exp>,
+        equal_to_exp,
+        eval_not_equal_to
+    >
+not_equal_to_exp;
+
+typedef
+    mpllibs::metaparse::foldlp<
+        mpllibs::metaparse::sequence<and_token,not_equal_to_exp>,
+        not_equal_to_exp,
+        eval_and
+    >
+and_exp;
 
 struct or_exp :
-  mpllibs::metaparse::foldlp<
-    mpllibs::metaparse::sequence<or_token,and_exp>,
-    and_exp,
-    eval_or
-  >
+    mpllibs::metaparse::foldlp<
+        mpllibs::metaparse::sequence<or_token,and_exp>,
+        and_exp,
+        eval_or
+    >
 {};
 
 //typedef
