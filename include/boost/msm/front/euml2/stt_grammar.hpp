@@ -275,8 +275,8 @@ not_exp;
 
 typedef
     mpllibs::metaparse::foldlp<
-        mpllibs::metaparse::sequence<equal_to_token,simple_exp>,
-        simple_exp,
+        mpllibs::metaparse::sequence<equal_to_token,not_exp>,
+        not_exp,
         eval_equal_to
     >
 equal_to_exp;

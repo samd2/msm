@@ -101,59 +101,6 @@ BOOST_AUTO_TEST_CASE( test_stt )
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Action)== typeid(BOOST_MSM_EUML2_ACTION("bb")),"action not bb");
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Guard)== typeid(BOOST_MSM_EUML2_GUARD("aa")),"guard not aa");
 
-    using boost::msm::front::euml::Or_;
-    using boost::msm::front::euml::And_;
-    using boost::msm::front::euml::EqualTo_;
-    using boost::msm::front::euml::NotEqualTo_;
-    using boost::msm::front::euml::Bitwise_Xor_;
-    using boost::msm::front::euml::Not_;
-    using boost::msm::front::Row;
-    // guard syntax
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa || cc] / bb -> foo")::Guard)==
-                        typeid(Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa || cc");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa && cc] / bb -> foo")::Guard)==
-                        typeid(And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa && cc");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa && cc || dd] / bb -> foo")::Guard)==
-                        typeid(Or_<And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>,BOOST_MSM_EUML2_GUARD("dd")>),
-                        "guard not (aa && cc) || dd");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa || cc || dd] / bb -> foo")::Guard)==
-                        typeid(Or_<Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>,BOOST_MSM_EUML2_GUARD("dd")>),
-                        "guard not (aa || cc) || dd");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa || (cc && dd)] / bb -> foo")::Guard)==
-                        typeid(Or_<BOOST_MSM_EUML2_GUARD("aa"),And_<BOOST_MSM_EUML2_GUARD("cc"),BOOST_MSM_EUML2_GUARD("dd")>>),
-                        "guard not (aa || (cc && dd)");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa && (cc || dd)] / bb -> foo")::Guard)==
-                        typeid(And_<BOOST_MSM_EUML2_GUARD("aa"),Or_<BOOST_MSM_EUML2_GUARD("cc"),BOOST_MSM_EUML2_GUARD("dd")>>),
-                        "guard not aa && (cc || dd)");
-
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [(aa || bb) && (cc || dd)] / bb -> foo")::Guard)==
-                        typeid(And_<Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("bb")>,
-                                    Or_<BOOST_MSM_EUML2_GUARD("cc"),BOOST_MSM_EUML2_GUARD("dd")>>),
-                        "guard not (aa || bb) && (cc || dd)");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [(aa && bb) || (cc && dd)] / bb -> foo")::Guard)==
-                        typeid(Or_<And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("bb")>,
-                                   And_<BOOST_MSM_EUML2_GUARD("cc"),BOOST_MSM_EUML2_GUARD("dd")>>),
-                        "guard not (aa || bb) && (cc || dd)");
-
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa == cc] / bb -> foo")::Guard)==
-                        typeid(EqualTo_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa == cc");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [(aa && bb) == (cc && dd)] / bb -> foo")::Guard)==
-                        typeid(EqualTo_<And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("bb")>,
-                                        And_<BOOST_MSM_EUML2_GUARD("cc"),BOOST_MSM_EUML2_GUARD("dd")>>),
-                        "guard not (aa || bb) == (cc || dd)");
-
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa != cc] / bb -> foo")::Guard)==
-                        typeid(NotEqualTo_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>),"guard not aa != cc");
-    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [(aa && bb) != (cc && dd)] / bb -> foo")::Guard)==
-                        typeid(NotEqualTo_<And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("bb")>,
-                                           And_<BOOST_MSM_EUML2_GUARD("cc"),BOOST_MSM_EUML2_GUARD("dd")>>),
-                        "guard not (aa || bb) != (cc || dd)");
-
-
-    char   *realname;
-
-    realname = abi::__cxa_demangle(typeid(EUML2_ROW("foo + bar [aa == ee] / bb -> foo")::Guard).name(), 0, 0, 0);
-    std::cout << "raw: " << realname << std::endl;
 }
 
 
