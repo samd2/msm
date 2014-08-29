@@ -284,6 +284,7 @@ namespace boost { namespace msm { namespace front
     template <class Sequence>
     struct ActionSequence_
     {
+        typedef ActionSequence_ type;
         typedef Sequence sequence;
         // if one functor of the sequence defers events, the complete sequence does
         typedef ::boost::mpl::bool_< 

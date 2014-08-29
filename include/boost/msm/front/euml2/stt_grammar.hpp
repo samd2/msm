@@ -132,6 +132,12 @@ struct make_euml2_action<boost::msm::front::none>
 {
     typedef boost::msm::front::none type;
 };
+template <class T1>
+struct make_euml2_action<boost::msm::front::ActionSequence_<T1>>
+{
+    typedef boost::msm::front::ActionSequence_<T1> type;
+};
+
 template <class T>
 struct make_euml2_guard
 {
@@ -263,7 +269,7 @@ struct eval_not
 struct or_exp;
 
 typedef mpllibs::metaparse::middle_of<open_paren_token, or_exp, close_paren_token> paren_or_exp;
-typedef mpllibs::metaparse::one_of<token_name, paren_or_exp> simple_exp;
+typedef mpllibs::metaparse::one_of<token_name, not_token, paren_or_exp> simple_exp;
 
 typedef
     mpllibs::metaparse::foldlp<
@@ -305,41 +311,33 @@ struct or_exp :
     >
 {};
 
-//typedef
-//  mpllibs::metaparse::foldlp<
-//    mpllibs::metaparse::sequence<
-//        and_token,
-//        mpllibs::metaparse::one_of<
-//          mpllibs::metaparse::middle_of<
-//              mpllibs::metaparse::lit_c<'('>,
-//              or_exp,
-//              mpllibs::metaparse::lit_c<')'>
-//          >,
-//          token_name
-//        >
-//    >,
-//    token_name,
-//    eval_and
-//  >
-//  and_exp;
 
-//struct or_exp :
-//  mpllibs::metaparse::foldlp<
-//    mpllibs::metaparse::sequence<
-//        or_token,
-//        mpllibs::metaparse::one_of<
-//            mpllibs::metaparse::middle_of<
-//                mpllibs::metaparse::lit_c<'('>,
-//                and_exp,
-//                mpllibs::metaparse::lit_c<')'>
-//            >,
-//            and_exp
-//        >
-//    >,
-//    and_exp,
-//    eval_or
-//  >
-//{};
+// action grammar
+struct action_exp;
+typedef mpllibs::metaparse::token<mpllibs::metaparse::lit_c<','> > comma_token;
+typedef mpllibs::metaparse::middle_of<open_paren_token, action_exp, close_paren_token> paren_comma_exp;
+typedef mpllibs::metaparse::one_of<token_name, paren_comma_exp> simple_action_exp;
+
+struct eval_action
+{
+  template <class C, class State>
+  struct apply :
+    boost::msm::front::ActionSequence_<boost::mpl::vector<
+          typename boost::msm::front::euml2::make_euml2_action<typename State::type>::type,
+          typename boost::msm::front::euml2::make_euml2_action<typename boost::mpl::back<C>::type>::type>
+    >
+  {};
+};
+
+struct action_exp :
+    mpllibs::metaparse::foldlp<
+        mpllibs::metaparse::sequence<comma_token,simple_action_exp>,
+        simple_action_exp,
+        eval_action
+    >
+{};
+
+
 
     // test with only one parser and optional
     struct transition_transform
@@ -380,7 +378,7 @@ struct or_exp :
           mpllibs::metaparse::one_of<
               mpllibs::metaparse::last_of<
                   mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'/'> >,
-                  token_name
+                  action_exp
               >,
               mpllibs::metaparse::return_<boost::msm::front::none>
           >,

@@ -70,11 +70,25 @@ BOOST_AUTO_TEST_CASE( test_guards )
                         "guard not (aa || bb) != (cc || dd)");
 
 
-    char   *realname;
 
-    realname = abi::__cxa_demangle(typeid(EUML2_ROW("foo + bar [!aa] / bb -> foo")::Guard).name(), 0, 0, 0);
-    std::cout << "raw: " << realname << std::endl;
 }
 
+BOOST_AUTO_TEST_CASE( test_actions )
+{
+    using boost::msm::front::ActionSequence_;
 
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa] / bb -> foo")::Action)==
+                        typeid(BOOST_MSM_EUML2_ACTION("bb")),"action not bb");
+
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa] / bb,cc -> foo")::Action)==
+                        typeid(ActionSequence_<boost::mpl::vector<BOOST_MSM_EUML2_ACTION("bb"),BOOST_MSM_EUML2_ACTION("cc")>>),"action not bb,cc");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [aa] / bb,cc,dd -> foo")::Action)==
+                        typeid(ActionSequence_<boost::mpl::vector<
+                                    ActionSequence_<boost::mpl::vector<BOOST_MSM_EUML2_ACTION("bb"),BOOST_MSM_EUML2_ACTION("cc")>>,BOOST_MSM_EUML2_ACTION("dd")>>),"action not bb,cc,dd");
+
+//    char   *realname;
+
+//    realname = abi::__cxa_demangle(typeid(EUML2_ROW("foo + bar [aa] / (bb , cc ,dd) -> foo")::Action).name(), 0, 0, 0);
+//    std::cout << "raw: " << realname << std::endl;
+}
 
