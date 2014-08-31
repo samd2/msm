@@ -26,6 +26,7 @@
 #include <mpllibs/metaparse/one_of.hpp>
 #include <mpllibs/metaparse/return_.hpp>
 #include <mpllibs/metaparse/foldlp.hpp>
+#include <mpllibs/metaparse/foldrp.hpp>
 
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/at.hpp>
@@ -260,7 +261,7 @@ struct eval_not
   template <class C, class State>
   struct apply :
     boost::msm::front::euml::Not_<
-          typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::back<C>::type>::type
+          typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type
     >
   {};
 };
@@ -268,13 +269,13 @@ struct eval_not
 
 struct or_exp;
 
-typedef mpllibs::metaparse::middle_of<open_paren_token, or_exp, close_paren_token> paren_or_exp;
-typedef mpllibs::metaparse::one_of<token_name, not_token, paren_or_exp> simple_exp;
+typedef mpllibs::metaparse::middle_of<open_paren_token, or_exp, close_paren_token> paren_guard_exp;
+typedef mpllibs::metaparse::one_of<token_name, paren_guard_exp> simple_exp;
 
 typedef
-    mpllibs::metaparse::foldlp<
-        mpllibs::metaparse::sequence<not_token,simple_exp>,
-        simple_exp,
+    mpllibs::metaparse::foldrp<
+        not_token,
+        mpllibs::metaparse::one_of<simple_exp,paren_guard_exp>,
         eval_not
     >
 not_exp;

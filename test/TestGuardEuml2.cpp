@@ -69,8 +69,15 @@ BOOST_AUTO_TEST_CASE( test_guards )
                                            And_<BOOST_MSM_EUML2_GUARD("cc"),BOOST_MSM_EUML2_GUARD("dd")>>),
                         "guard not (aa || bb) != (cc || dd)");
 
-
-
+    // not syntax
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [!aa] / bb -> foo")::Guard)==
+                        typeid(Not_<BOOST_MSM_EUML2_GUARD("aa")>),"guard not !aa");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [!!aa] / bb -> foo")::Guard)==
+                        typeid(Not_<Not_<BOOST_MSM_EUML2_GUARD("aa")>>),"guard not !!aa");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [!(aa || cc)] / bb -> foo")::Guard)==
+                        typeid(Not_<Or_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>>),"guard not !(aa || cc)");
+    BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + bar [!(aa && cc)] / bb -> foo")::Guard)==
+                        typeid(Not_<And_<BOOST_MSM_EUML2_GUARD("aa"),BOOST_MSM_EUML2_GUARD("cc")>>),"guard not !(aa && cc)");
 }
 
 BOOST_AUTO_TEST_CASE( test_actions )
@@ -88,7 +95,7 @@ BOOST_AUTO_TEST_CASE( test_actions )
 
 //    char   *realname;
 
-//    realname = abi::__cxa_demangle(typeid(EUML2_ROW("foo + bar [aa] / (bb , cc ,dd) -> foo")::Action).name(), 0, 0, 0);
+//    realname = abi::__cxa_demangle(typeid(EUML2_ROW("foo + bar [!!(aa || bb)] / bb -> foo")).name(), 0, 0, 0);
 //    std::cout << "raw: " << realname << std::endl;
 }
 
