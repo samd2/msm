@@ -275,7 +275,7 @@ typedef mpllibs::metaparse::one_of<token_name, paren_guard_exp> simple_exp;
 typedef
     mpllibs::metaparse::foldrp<
         not_token,
-        mpllibs::metaparse::one_of<simple_exp,paren_guard_exp>,
+        simple_exp,
         eval_not
     >
 not_exp;
