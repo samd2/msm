@@ -30,21 +30,35 @@ using namespace msm::front;
 namespace  // Concrete FSM implementation
 {
 
+    struct logging_base_state
+    {
+        template <class Event, class Fsm>
+        void on_entry(Event const&, Fsm&)
+        {
+            std::cout << "logging_base_state entry" << std::endl;
+        }
+        template <class Event, class Fsm>
+        void on_exit(Event const&, Fsm&)
+        {
+            std::cout << "logging_base_state exit" << std::endl;
+        }
+    };
     // front-end: define the FSM structure
-    struct player_ : public msm::front::state_machine_def<player_>
+    struct player_ : public msm::front::state_machine_def<player_,logging_base_state>
     {                
         // the initial state of the player SM. Must be defined
-        typedef BOOST_MSM_EUML2_STATE("State1") initial_state;
+        using initial_state = BOOST_MSM_EUML2_STATE(player_,"State1") ;
 
         // Transition table for player
-        struct transition_table : mpl::vector<
-        //     +---------------------------------------------------------------------------------------+
-        EUML2_ROW("State1 + Event1 / doIt       -> State2"),
-        EUML2_ROW("State1 + *      / doIt       -> State2"),
-        EUML2_ROW("State2 + Event2 [ok] / doIt  -> State1"),
-        EUML2_ROW("State2 + Event2 [noway]      -> State1")
-        //     +---------------------------------------------------------------------------------------+
-        > {};
+        EUML2_STT(
+            player_,
+            //     +---------------------------------------------------------------------------------------+
+            EUML2_ROW("State1 + Event1 / doIt       -> State2"),
+            EUML2_ROW("State1 + *      / doIt       -> State2"),
+            EUML2_ROW("State2 + Event2 [ok] / doIt  -> State1"),
+            EUML2_ROW("State2 + Event2 [noway]      -> State1")
+            //     +---------------------------------------------------------------------------------------+
+        );
         // Replaces the default no-transition response.
         template <class FSM,class Event>
         void no_transition(Event const& e, FSM&,int state)
@@ -74,11 +88,11 @@ namespace  // Concrete FSM implementation
         // needed to start the highest-level SM. This will call on_entry and mark the start of the SM
         p.start();
         // go to State2
-        p.process_event(BOOST_MSM_EUML2_EVENT("Event1")()); pstate(p);
+        p.process_event(BOOST_MSM_EUML2_EVENT(player_,"Event1")()); pstate(p);
         // go to State1
-        p.process_event(BOOST_MSM_EUML2_EVENT("Event2")()); pstate(p);
+        p.process_event(BOOST_MSM_EUML2_EVENT(player_,"Event2")()); pstate(p);
         // go to State2 using kleene (* = any) event
-        p.process_event(BOOST_MSM_EUML2_EVENT("*")()); pstate(p);
+        p.process_event(BOOST_MSM_EUML2_EVENT(player_,"whatever")()); pstate(p);
         std::cout << "stop fsm" << std::endl;
         p.stop();
 
@@ -88,27 +102,27 @@ namespace  // Concrete FSM implementation
 // we want to overwrite on_entry and on_exit only for this state
 template<>
 template <class Event, class Fsm>
-void boost::msm::front::euml2::euml2_state<BOOST_MSM_EUML2_NAME("State1")>::on_entry(Event const&, Fsm&)
+void boost::msm::front::euml2::euml2_state<BOOST_MSM_EUML2_NAME("State1"),player_>::on_entry(Event const&, Fsm&)
 {
     std::cout << "State1::on_entry" << std::endl;
 }
 template<>
 template <class Event, class Fsm>
-void boost::msm::front::euml2::euml2_state<BOOST_MSM_EUML2_NAME("State1")>::on_exit(Event const&, Fsm&)
+void boost::msm::front::euml2::euml2_state<BOOST_MSM_EUML2_NAME("State1"),player_>::on_exit(Event const&, Fsm&)
 {
     std::cout << "State1::on_exit" << std::endl;
 }
 // provide doIt definition
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
-void boost::msm::front::euml2::euml2_action<BOOST_MSM_EUML2_NAME("doIt")>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
+void boost::msm::front::euml2::euml2_action<BOOST_MSM_EUML2_NAME("doIt"),player_>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
 {
     std::cout << "called doIt" << std::endl;
 }
 // provide noway definition
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
-bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("noway")>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
+bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("noway"),player_>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
 {
     std::cout << "called noway" << std::endl;
     return false;
@@ -116,7 +130,7 @@ bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("noway")>::opera
 // provide ok definition
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
-bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("ok")>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
+bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("ok"),player_>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
 {
     std::cout << "called ok" << std::endl;
     return true;

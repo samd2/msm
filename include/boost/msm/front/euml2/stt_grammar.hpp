@@ -31,6 +31,10 @@
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/any.hpp>
+#include <boost/mpl/list.hpp>
+#include <boost/mpl/fold.hpp>
+#include <boost/mpl/eval_if.hpp>
+#include <boost/mpl/identity.hpp>
 
 #include <boost/msm/front/functor_row.hpp>
 #include <boost/msm/front/states.hpp>
@@ -39,6 +43,24 @@
 
 namespace boost { namespace msm { namespace front { namespace euml2
 {
+struct kleene : public boost::any
+{
+    typedef kleene type;
+    template<typename ValueType>
+    kleene(const ValueType & v) : boost::any(v){}
+};
+}}}}
+namespace boost { namespace msm{
+    template<>
+    struct is_kleene_event< boost::msm::front::euml2::kleene >
+    {
+      typedef ::boost::mpl::true_ type;
+    };
+}}
+
+namespace boost { namespace msm { namespace front { namespace euml2
+{
+BOOST_MPL_HAS_XXX_TRAIT_DEF(name_type)
 typedef
 mpllibs::metaparse::token<
   mpllibs::metaparse::any_one_of1<
@@ -54,27 +76,36 @@ typedef mpllibs::metaparse::build_parser<
   token_name
 > name_parser;
 
-template <class Name>
-struct euml2_state: public msm::front::state<>
+struct dummy_fsm
+{
+    typedef boost::msm::front::default_base_state BaseAllStates;
+};
+
+template <class Name, class ContainingFsm = boost::msm::front::euml2::dummy_fsm>
+struct euml2_state: public msm::front::state<typename ContainingFsm::BaseAllStates>
 {
     typedef euml2_state type;
     typedef Name name_type;
+    typedef typename ContainingFsm::BaseAllStates base_type;
+
     template <class Event, class Fsm>
-    void on_entry(Event const&, Fsm&)
+    void on_entry(Event const& evt, Fsm& fsm)
     {
+        ContainingFsm::BaseAllStates::on_entry(evt,fsm);
     }
     template <class Event, class Fsm>
-    void on_exit(Event const&, Fsm&)
+    void on_exit(Event const& evt, Fsm& fsm)
     {
+        ContainingFsm::BaseAllStates::on_exit(evt,fsm);
     }
 };
-template <class Name>
+template <class Name, class ContainingFsm = boost::msm::front::euml2::dummy_fsm>
 struct euml2_event
 {
     typedef Name name_type;
     typedef euml2_event type;
 };
-template <class Name>
+template <class Name, class ContainingFsm = boost::msm::front::euml2::dummy_fsm>
 struct euml2_action
 {
     typedef Name name_type;
@@ -84,7 +115,7 @@ struct euml2_action
     {
     }
 };
-template <class Name>
+template <class Name, class ContainingFsm = boost::msm::front::euml2::dummy_fsm>
 struct euml2_guard
 {
     typedef Name name_type;
@@ -106,12 +137,13 @@ struct make_euml2_event<boost::msm::front::none>
 {
     typedef boost::msm::front::none type;
 };
+
 template <>
 struct make_euml2_event<
         typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING("*")>::type
 >
 {
-    typedef boost::any type;
+    typedef boost::msm::front::euml2::kleene type;
 };
 template <class T>
 struct make_euml2_state
@@ -356,7 +388,7 @@ struct action_exp :
         >
         {};
     };
-    typedef
+    struct transition_parser :
       mpllibs::metaparse::transform<
         mpllibs::metaparse::sequence<
           // metaparse::token is used to consume whitespaces after token_name
@@ -394,10 +426,92 @@ struct action_exp :
         >,
         transition_transform
       >
-      transition_parser;
+      {};
 
 typedef mpllibs::metaparse::build_parser<transition_parser> row_parser;
 
+template <class Fsm,class T>
+struct get_source_from_row
+{
+    typedef euml2_state<typename T::Source::name_type,Fsm > type;
+};
+template <class T>
+struct get_event_from_row
+{
+    typedef typename T::Evt type;
+};
+
+template <class T>
+struct get_target_from_row
+{
+    typedef typename T::Target type;
+};
+template <class T>
+struct get_action_from_row
+{
+    typedef typename T::Action type;
+};
+template <class T>
+struct get_guard_from_row
+{
+    typedef typename T::Guard type;
+};
+
+template <class Fsm,class T>
+struct make_event_from_row
+{
+    typedef euml2_event<typename T::Evt::name_type,Fsm> type;
+};
+template <class Fsm,class T>
+struct make_target_from_row
+{
+    typedef euml2_state<typename T::Target::name_type,Fsm> type;
+};
+template <class Fsm,class T>
+struct make_action_from_row
+{
+    typedef euml2_action<typename T::Action::name_type,Fsm> type;
+};
+template <class Fsm,class T>
+struct make_guard_from_row
+{
+    typedef euml2_guard<typename T::Guard::name_type,Fsm> type;
+};
+
+template <typename Fsm,typename Stt>
+struct stt_helper
+{
+    typedef typename ::boost::mpl::fold<
+        Stt,
+        ::boost::mpl::vector<>,
+        ::boost::mpl::push_back<
+            ::boost::mpl::placeholders::_1,
+            ::boost::msm::front::Row<
+                get_source_from_row< Fsm,::boost::mpl::placeholders::_2>,
+                boost::mpl::eval_if<
+                    has_name_type< get_event_from_row< ::boost::mpl::placeholders::_2>>,
+                    make_event_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                    get_event_from_row< ::boost::mpl::placeholders::_2>
+                >,
+                boost::mpl::eval_if<
+                    has_name_type< get_target_from_row< ::boost::mpl::placeholders::_2>>,
+                    make_target_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                    get_target_from_row< ::boost::mpl::placeholders::_2>
+                >,
+                boost::mpl::eval_if<
+                    has_name_type< get_action_from_row< ::boost::mpl::placeholders::_2>>,
+                    make_action_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                    get_action_from_row< ::boost::mpl::placeholders::_2>
+                >,
+                boost::mpl::eval_if<
+                    has_name_type< get_guard_from_row< ::boost::mpl::placeholders::_2>>,
+                    make_guard_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                    get_guard_from_row< ::boost::mpl::placeholders::_2>
+                >
+            >
+        >
+    >::type type;
+};
 }}}}
 // just for debugging purposes
 #define EUML2_ROW_RAW(rowstring)                                  \
@@ -412,12 +526,12 @@ typedef mpllibs::metaparse::build_parser<transition_parser> row_parser;
     typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type
 
 // the eUML2 state hiding behind a name token
-#define BOOST_MSM_EUML2_STATE(aname)                             \
-    boost::msm::front::euml2::euml2_state<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type>
+#define BOOST_MSM_EUML2_STATE(fsm,aname)                             \
+    boost::msm::front::euml2::euml2_state<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type, fsm>
 
 // the eUML2 event hiding behind a name token
-#define BOOST_MSM_EUML2_EVENT(aname)                             \
-    boost::msm::front::euml2::euml2_event<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type>
+#define BOOST_MSM_EUML2_EVENT(fsm,aname)                             \
+    boost::msm::front::euml2::euml2_event<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type, fsm>
 
 // the eUML2 guard hiding behind a name token
 #define BOOST_MSM_EUML2_GUARD(aname)                             \
@@ -426,5 +540,8 @@ typedef mpllibs::metaparse::build_parser<transition_parser> row_parser;
 // the eUML2 action hiding behind a name token
 #define BOOST_MSM_EUML2_ACTION(aname)                             \
     boost::msm::front::euml2::euml2_action<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type>
+
+#define EUML2_STT(fsm,args...)                                                          \
+    struct transition_table : boost::msm::front::euml2::stt_helper<fsm,boost::mpl::list<args>>::type{};
 
 #endif //BOOST_MSM_FRONT_EUML2_STT_GRAMMAR_H
