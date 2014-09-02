@@ -526,11 +526,11 @@ struct stt_helper
     typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type
 
 // the eUML2 state hiding behind a name token
-#define BOOST_MSM_EUML2_STATE(fsm,aname)                             \
+#define BOOST_MSM_EUML2_STATE(aname,fsm)                             \
     boost::msm::front::euml2::euml2_state<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type, fsm>
 
 // the eUML2 event hiding behind a name token
-#define BOOST_MSM_EUML2_EVENT(fsm,aname)                             \
+#define BOOST_MSM_EUML2_EVENT(aname,fsm)                             \
     boost::msm::front::euml2::euml2_event<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type, fsm>
 
 // the eUML2 guard hiding behind a name token
@@ -543,5 +543,18 @@ struct stt_helper
 
 #define EUML2_STT(fsm,args...)                                                          \
     struct transition_table : boost::msm::front::euml2::stt_helper<fsm,boost::mpl::list<args>>::type{};
+
+// for state / action / guard / event implementations
+#define BOOST_MSM_EUML2_STATE_IMPL(aname,fsm)                       \
+    boost::msm::front::euml2::euml2_state<BOOST_MSM_EUML2_NAME(aname),fsm>
+
+#define BOOST_MSM_EUML2_ACTION_IMPL(aname,fsm)                       \
+    boost::msm::front::euml2::euml2_action<BOOST_MSM_EUML2_NAME(aname),fsm>
+
+#define BOOST_MSM_EUML2_GUARD_IMPL(aname,fsm)                       \
+    boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME(aname),fsm>
+
+#define BOOST_MSM_EUML2_EVENT_IMPL(aname,fsm)                       \
+    boost::msm::front::euml2::euml2_event<BOOST_MSM_EUML2_NAME(aname),fsm>
 
 #endif //BOOST_MSM_FRONT_EUML2_STT_GRAMMAR_H

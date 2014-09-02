@@ -27,8 +27,23 @@ namespace msm = boost::msm;
 namespace mpl = boost::mpl;
 using namespace msm::front;
 
-namespace  // Concrete FSM implementation
+// overwrite event
+struct player_;
+namespace boost { namespace msm { namespace front { namespace euml2
 {
+template<>
+struct euml2_event<BOOST_MSM_EUML2_NAME("Event1"),player_>
+{
+    typedef euml2_event type;
+    euml2_event()
+    {
+        std::cout << "Event1 ctor called" << std::endl;
+    }
+};
+}}}}
+
+//namespace  // Concrete FSM implementation
+//{
 
     struct logging_base_state
     {
@@ -43,11 +58,12 @@ namespace  // Concrete FSM implementation
             std::cout << "logging_base_state exit" << std::endl;
         }
     };
+
     // front-end: define the FSM structure
     struct player_ : public msm::front::state_machine_def<player_,logging_base_state>
     {                
         // the initial state of the player SM. Must be defined
-        using initial_state = BOOST_MSM_EUML2_STATE(player_,"State1") ;
+        using initial_state = BOOST_MSM_EUML2_STATE("State1",player_) ;
 
         // Transition table for player
         EUML2_STT(
@@ -81,48 +97,49 @@ namespace  // Concrete FSM implementation
     {
         std::cout << "active state -> " << state_names[p.current_state()[0]] << std::endl;
     }
+//}
 
-    void test()
-    {
-        player p;
-        // needed to start the highest-level SM. This will call on_entry and mark the start of the SM
-        p.start();
-        // go to State2
-        p.process_event(BOOST_MSM_EUML2_EVENT(player_,"Event1")()); pstate(p);
-        // go to State1
-        p.process_event(BOOST_MSM_EUML2_EVENT(player_,"Event2")()); pstate(p);
-        // go to State2 using kleene (* = any) event
-        p.process_event(BOOST_MSM_EUML2_EVENT(player_,"whatever")()); pstate(p);
-        std::cout << "stop fsm" << std::endl;
-        p.stop();
+void test()
+{
+    player p;
+    // needed to start the highest-level SM. This will call on_entry and mark the start of the SM
+    p.start();
+    // go to State2
+    p.process_event(BOOST_MSM_EUML2_EVENT("Event1",player_)()); pstate(p);
+    // go to State1
+    p.process_event(BOOST_MSM_EUML2_EVENT("Event2",player_)()); pstate(p);
+    // go to State2 using kleene (* = any) event
+    p.process_event(BOOST_MSM_EUML2_EVENT("whatever",player_)()); pstate(p);
+    std::cout << "stop fsm" << std::endl;
+    p.stop();
 
-    }
 }
+
 
 // we want to overwrite on_entry and on_exit only for this state
 template<>
 template <class Event, class Fsm>
-void boost::msm::front::euml2::euml2_state<BOOST_MSM_EUML2_NAME("State1"),player_>::on_entry(Event const&, Fsm&)
+void BOOST_MSM_EUML2_STATE_IMPL("State1",player_)::on_entry(Event const&, Fsm&)
 {
     std::cout << "State1::on_entry" << std::endl;
 }
 template<>
 template <class Event, class Fsm>
-void boost::msm::front::euml2::euml2_state<BOOST_MSM_EUML2_NAME("State1"),player_>::on_exit(Event const&, Fsm&)
+void BOOST_MSM_EUML2_STATE_IMPL("State1",player_)::on_exit(Event const&, Fsm&)
 {
     std::cout << "State1::on_exit" << std::endl;
 }
 // provide doIt definition
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
-void boost::msm::front::euml2::euml2_action<BOOST_MSM_EUML2_NAME("doIt"),player_>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
+void BOOST_MSM_EUML2_ACTION_IMPL("doIt",player_)::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
 {
     std::cout << "called doIt" << std::endl;
 }
 // provide noway definition
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
-bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("noway"),player_>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
+bool BOOST_MSM_EUML2_GUARD_IMPL("noway",player_)::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
 {
     std::cout << "called noway" << std::endl;
     return false;
@@ -130,11 +147,13 @@ bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("noway"),player_
 // provide ok definition
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
-bool boost::msm::front::euml2::euml2_guard<BOOST_MSM_EUML2_NAME("ok"),player_>::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
+bool BOOST_MSM_EUML2_GUARD_IMPL("ok",player_)::operator()(Event const&, Fsm&,SourceState& ,TargetState& )
 {
     std::cout << "called ok" << std::endl;
     return true;
 }
+
+
 int main()
 {
     test();
