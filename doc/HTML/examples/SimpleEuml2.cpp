@@ -28,7 +28,10 @@ namespace mpl = boost::mpl;
 using namespace msm::front;
 
 // overwrite event
+namespace{
 struct player_;
+}
+
 namespace boost { namespace msm { namespace front { namespace euml2
 {
 template<>
@@ -42,8 +45,8 @@ struct euml2_event<BOOST_MSM_EUML2_NAME("Event1"),player_>
 };
 }}}}
 
-//namespace  // Concrete FSM implementation
-//{
+namespace  // Concrete FSM implementation
+{
 
     struct logging_base_state
     {
@@ -74,7 +77,7 @@ struct euml2_event<BOOST_MSM_EUML2_NAME("Event1"),player_>
             EUML2_ROW("State2 + Event2 [ok] / doIt  -> State1"),
             EUML2_ROW("State2 + Event2 [noway]      -> State1")
             //     +---------------------------------------------------------------------------------------+
-        );
+        )
         // Replaces the default no-transition response.
         template <class FSM,class Event>
         void no_transition(Event const& e, FSM&,int state)
@@ -97,7 +100,7 @@ struct euml2_event<BOOST_MSM_EUML2_NAME("Event1"),player_>
     {
         std::cout << "active state -> " << state_names[p.current_state()[0]] << std::endl;
     }
-//}
+}
 
 void test()
 {
