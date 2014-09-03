@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE( test_actions )
 
 //    char   *realname;
 
-//    realname = abi::__cxa_demangle(typeid(EUML2_ROW("foo + bar [!!(aa || bb)] / bb -> foo")).name(), 0, 0, 0);
+//    realname = abi::__cxa_demangle(typeid(EUML2_ROW("foo + bar [!(aa || bb)] / bb -> foo")).name(), 0, 0, 0);
 //    std::cout << "raw: " << realname << std::endl;
 }
 

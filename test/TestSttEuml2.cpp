@@ -103,6 +103,15 @@ BOOST_AUTO_TEST_CASE( test_stt )
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Action)== typeid(BOOST_MSM_EUML2_ACTION("bb")),"action not bb");
     BOOST_CHECK_MESSAGE(typeid(EUML2_ROW("foo + * [aa] / bb -> foo")::Guard)== typeid(BOOST_MSM_EUML2_GUARD("aa")),"guard not aa");
 
+    // name checking
+    BOOST_MSM_EUML2_STATE("bla",dummy_fsm) s;
+    BOOST_CHECK_MESSAGE(s.name()=="bla","wrong state name");
+    BOOST_MSM_EUML2_EVENT("bla",dummy_fsm) e;
+    BOOST_CHECK_MESSAGE(e.name()=="bla","wrong event name");
+    BOOST_MSM_EUML2_ACTION("bla") a;
+    BOOST_CHECK_MESSAGE(a.name()=="bla","wrong action name");
+    BOOST_MSM_EUML2_GUARD("bla") g;
+    BOOST_CHECK_MESSAGE(g.name()=="bla","wrong guard name");
 }
 
 

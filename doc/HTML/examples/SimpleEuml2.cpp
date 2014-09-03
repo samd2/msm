@@ -19,8 +19,6 @@
 #define BOOST_MPL_LIMIT_STRING_SIZE 64
 #define MPLLIBS_LIMIT_STRING_SIZE BOOST_MPL_LIMIT_STRING_SIZE
 #include <boost/msm/front/euml2/stt_grammar.hpp>
-#include <typeinfo>
-#include <cxxabi.h>
 
 using namespace std;
 namespace msm = boost::msm;
@@ -37,11 +35,18 @@ namespace boost { namespace msm { namespace front { namespace euml2
 template<>
 struct euml2_event<BOOST_MSM_EUML2_NAME("Event1"),player_>
 {
+    // if we specialize, we need to provide this
     typedef euml2_event type;
+    std::string name()const
+    {
+        return BOOST_MSM_EUML2_NAME_FCT(BOOST_MSM_EUML2_NAME("Event1"));
+    }
+    // we want our own ctor
     euml2_event()
     {
         std::cout << "Event1 ctor called" << std::endl;
     }
+
 };
 }}}}
 
@@ -53,13 +58,14 @@ namespace  // Concrete FSM implementation
         template <class Event, class Fsm>
         void on_entry(Event const&, Fsm&)
         {
-            std::cout << "logging_base_state entry" << std::endl;
+            std::cout  << name() << " on_entry" << std::endl;
         }
         template <class Event, class Fsm>
         void on_exit(Event const&, Fsm&)
         {
-            std::cout << "logging_base_state exit" << std::endl;
+            std::cout << name() << " on_exit"  << std::endl;
         }
+        virtual std::string name() const {return "";}
     };
 
     // front-end: define the FSM structure
@@ -82,23 +88,17 @@ namespace  // Concrete FSM implementation
         template <class FSM,class Event>
         void no_transition(Event const& e, FSM&,int state)
         {
-            char   *realname;
-            realname = abi::__cxa_demangle(typeid(e).name(), 0, 0, 0);
-            std::cout << "no transition from state " << state
-                << " on event " << realname << std::endl;
-            delete realname;
+            std::cout << "no transition from state " << state << " on event " << e.name() << std::endl;
         }
     };
     // Pick a back-end
     typedef msm::back::state_machine<player_> player;
 
-    //
     // Testing utilities.
-    //
-    static char const* const state_names[] = { "State1", "State2"};
     void pstate(player const& p)
     {
-        std::cout << "active state -> " << state_names[p.current_state()[0]] << std::endl;
+        // we can ask the state its name, easier!
+        std::cout << "active state -> " << p.get_state_by_id(p.current_state()[0])->name() << std::endl;
     }
 }
 

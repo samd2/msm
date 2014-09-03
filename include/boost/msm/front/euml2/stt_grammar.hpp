@@ -34,7 +34,8 @@
 #include <boost/mpl/list.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/eval_if.hpp>
-#include <boost/mpl/identity.hpp>
+#include <boost/mpl/push_back.hpp>
+#include <boost/mpl/string.hpp>
 
 #include <boost/msm/front/functor_row.hpp>
 #include <boost/msm/front/states.hpp>
@@ -61,6 +62,17 @@ namespace boost { namespace msm{
 namespace boost { namespace msm { namespace front { namespace euml2
 {
 BOOST_MPL_HAS_XXX_TRAIT_DEF(name_type)
+// helper, converts a vector_c to a mpl::string
+template <class Vec>
+struct vector_c_to_string
+{
+    typedef typename ::boost::mpl::fold<
+            Vec,
+            boost::mpl::string<>,
+            boost::mpl::push_back< ::boost::mpl::placeholders::_1, ::boost::mpl::placeholders::_2>
+            >::type type;
+};
+
 typedef
 mpllibs::metaparse::token<
   mpllibs::metaparse::any_one_of1<
@@ -88,6 +100,12 @@ struct euml2_state: public msm::front::state<typename ContainingFsm::BaseAllStat
     typedef Name name_type;
     typedef typename ContainingFsm::BaseAllStates base_type;
 
+    // returns name of this object (as given in transition table)
+    std::string name()const
+    {
+        return boost::mpl::c_str<typename vector_c_to_string<Name>::type>::value;
+    }
+
     template <class Event, class Fsm>
     void on_entry(Event const& evt, Fsm& fsm)
     {
@@ -104,12 +122,24 @@ struct euml2_event
 {
     typedef Name name_type;
     typedef euml2_event type;
+    // returns name of this object (as given in transition table)
+    std::string name()const
+    {
+        return boost::mpl::c_str<typename vector_c_to_string<Name>::type>::value;
+    }
+
 };
 template <class Name, class ContainingFsm = boost::msm::front::euml2::dummy_fsm>
 struct euml2_action
 {
     typedef Name name_type;
     typedef euml2_action type;
+    // returns name of this object (as given in transition table)
+    std::string name()const
+    {
+        return boost::mpl::c_str<typename vector_c_to_string<Name>::type>::value;
+    }
+
     template <class EVT,class FSM,class SourceState,class TargetState>
     void operator()(EVT const&, FSM&,SourceState& ,TargetState& )
     {
@@ -120,6 +150,12 @@ struct euml2_guard
 {
     typedef Name name_type;
     typedef euml2_guard type;
+    // returns name of this object (as given in transition table)
+    std::string name()const
+    {
+        return boost::mpl::c_str<typename vector_c_to_string<Name>::type>::value;
+    }
+
     template <class EVT,class FSM,class SourceState,class TargetState>
     bool operator()(EVT const&, FSM&,SourceState& ,TargetState& )
     {
@@ -556,5 +592,8 @@ struct stt_helper
 
 #define BOOST_MSM_EUML2_EVENT_IMPL(aname,fsm)                       \
     boost::msm::front::euml2::euml2_event<BOOST_MSM_EUML2_NAME(aname),fsm>
+
+#define BOOST_MSM_EUML2_NAME_FCT(name)                        \
+    boost::mpl::c_str<typename boost::msm::front::euml2::vector_c_to_string<name>::type>::value
 
 #endif //BOOST_MSM_FRONT_EUML2_STT_GRAMMAR_H
