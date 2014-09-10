@@ -70,13 +70,14 @@ namespace  // Concrete FSM implementation
 
     // front-end: define the FSM structure
     struct player_ : public msm::front::state_machine_def<player_,logging_base_state>
-    {                
+    {
         // the initial state of the player SM. Must be defined
         using initial_state = BOOST_MSM_EUML2_STATE("State1",player_) ;
 
         // Transition table for player
         EUML2_STT(
             player_,
+            EUML2_STT_CFG(),
             //     +---------------------------------------------------------------------------------------+
             EUML2_ROW("State1 + Event1 / doIt       -> State2"),
             EUML2_ROW("State1 + *      / doIt       -> State2"),

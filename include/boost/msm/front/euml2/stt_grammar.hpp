@@ -28,6 +28,7 @@
 #include <mpllibs/metaparse/foldlp.hpp>
 #include <mpllibs/metaparse/foldrp.hpp>
 
+#include <boost/mpl/map.hpp>
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/any.hpp>
@@ -514,7 +515,7 @@ struct make_guard_from_row
     typedef euml2_guard<typename T::Guard::name_type,Fsm> type;
 };
 
-template <typename Fsm,typename Stt>
+template <typename Fsm,typename Cfg,typename Stt>
 struct stt_helper
 {
     typedef typename ::boost::mpl::fold<
@@ -577,8 +578,14 @@ struct stt_helper
 #define BOOST_MSM_EUML2_ACTION(aname)                             \
     boost::msm::front::euml2::euml2_action<typename boost::msm::front::euml2::name_parser::apply<MPLLIBS_STRING(aname)>::type>
 
-#define EUML2_STT(fsm,args...)                                                          \
-    struct transition_table : boost::msm::front::euml2::stt_helper<fsm,boost::mpl::list<args>>::type{};
+#define EUML2_STT_USE(key,name)                                                   \
+    boost::mpl::pair<BOOST_MSM_EUML2_NAME(key),name>
+
+#define EUML2_STT_CFG(args...)                                  \
+    boost::mpl::map<args>
+
+#define EUML2_STT(fsm,cfg,args...)                                                          \
+    struct transition_table : boost::msm::front::euml2::stt_helper<fsm,cfg,boost::mpl::list<args>>::type{};
 
 // for state / action / guard / event implementations
 #define BOOST_MSM_EUML2_STATE_IMPL(aname,fsm)                       \
