@@ -468,9 +468,14 @@ struct action_exp :
 typedef mpllibs::metaparse::build_parser<transition_parser> row_parser;
 
 template <class Fsm,class T>
-struct get_source_from_row
+struct make_source_from_row
 {
     typedef euml2_state<typename T::Source::name_type,Fsm > type;
+};
+template <class T>
+struct get_source_from_row
+{
+    typedef typename T::Source type;
 };
 template <class T>
 struct get_event_from_row
@@ -515,6 +520,22 @@ struct make_guard_from_row
     typedef euml2_guard<typename T::Guard::name_type,Fsm> type;
 };
 
+template <class T>
+struct get_name_type
+{
+    typedef typename T::name_type type;
+};
+
+template <class T>
+struct eval_name_type
+{
+    typedef typename boost::mpl::eval_if<
+        has_name_type<T>,
+        get_name_type<T>,
+        boost::mpl::identity<void>
+    >::type type;
+};
+
 template <typename Fsm,typename Cfg,typename Stt>
 struct stt_helper
 {
@@ -524,26 +545,46 @@ struct stt_helper
         ::boost::mpl::push_back<
             ::boost::mpl::placeholders::_1,
             ::boost::msm::front::Row<
-                get_source_from_row< Fsm,::boost::mpl::placeholders::_2>,
                 boost::mpl::eval_if<
-                    has_name_type< get_event_from_row< ::boost::mpl::placeholders::_2>>,
-                    make_event_from_row< Fsm, ::boost::mpl::placeholders::_2>,
-                    get_event_from_row< ::boost::mpl::placeholders::_2>
+                    boost::mpl::has_key<Cfg,eval_name_type<get_source_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::at<Cfg,eval_name_type<get_source_from_row< ::boost::mpl::placeholders::_2>>>,
+                    make_source_from_row< Fsm,::boost::mpl::placeholders::_2>
                 >,
                 boost::mpl::eval_if<
-                    has_name_type< get_target_from_row< ::boost::mpl::placeholders::_2>>,
-                    make_target_from_row< Fsm, ::boost::mpl::placeholders::_2>,
-                    get_target_from_row< ::boost::mpl::placeholders::_2>
+                    boost::mpl::has_key<Cfg,eval_name_type<get_event_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::at<Cfg,eval_name_type<get_event_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::eval_if<
+                        has_name_type< get_event_from_row< ::boost::mpl::placeholders::_2>>,
+                        make_event_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                        get_event_from_row< ::boost::mpl::placeholders::_2>
+                    >
                 >,
                 boost::mpl::eval_if<
-                    has_name_type< get_action_from_row< ::boost::mpl::placeholders::_2>>,
-                    make_action_from_row< Fsm, ::boost::mpl::placeholders::_2>,
-                    get_action_from_row< ::boost::mpl::placeholders::_2>
+                    boost::mpl::has_key<Cfg,eval_name_type<get_target_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::at<Cfg,eval_name_type<get_target_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::eval_if<
+                        has_name_type< get_target_from_row< ::boost::mpl::placeholders::_2>>,
+                        make_target_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                        get_target_from_row< ::boost::mpl::placeholders::_2>
+                    >
                 >,
                 boost::mpl::eval_if<
-                    has_name_type< get_guard_from_row< ::boost::mpl::placeholders::_2>>,
-                    make_guard_from_row< Fsm, ::boost::mpl::placeholders::_2>,
-                    get_guard_from_row< ::boost::mpl::placeholders::_2>
+                    boost::mpl::has_key<Cfg,eval_name_type<get_action_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::at<Cfg,eval_name_type<get_action_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::eval_if<
+                        has_name_type< get_action_from_row< ::boost::mpl::placeholders::_2>>,
+                        make_action_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                        get_action_from_row< ::boost::mpl::placeholders::_2>
+                    >
+                >,
+                boost::mpl::eval_if<
+                    boost::mpl::has_key<Cfg,eval_name_type<get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::at<Cfg,eval_name_type<get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
+                    boost::mpl::eval_if<
+                        has_name_type< get_guard_from_row< ::boost::mpl::placeholders::_2>>,
+                        make_guard_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                        get_guard_from_row< ::boost::mpl::placeholders::_2>
+                    >
                 >
             >
         >

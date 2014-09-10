@@ -32,26 +32,61 @@ struct player_;
 
 namespace boost { namespace msm { namespace front { namespace euml2
 {
-template<>
-struct euml2_event<BOOST_MSM_EUML2_NAME("Event1"),player_>
-{
-    // if we specialize, we need to provide this
-    typedef euml2_event type;
-    std::string name()const
-    {
-        return BOOST_MSM_EUML2_NAME_FCT(BOOST_MSM_EUML2_NAME("Event1"));
-    }
-    // we want our own ctor
-    euml2_event()
-    {
-        std::cout << "Event1 ctor called" << std::endl;
-    }
+//template<>
+//struct euml2_event<BOOST_MSM_EUML2_NAME("Event1"),player_>
+//{
+//    // if we specialize, we need to provide this
+//    typedef euml2_event type;
+//    std::string name()const
+//    {
+//        return BOOST_MSM_EUML2_NAME_FCT(BOOST_MSM_EUML2_NAME("Event1"));
+//    }
+//    // we want our own ctor
+//    euml2_event()
+//    {
+//        std::cout << "Event1 ctor called" << std::endl;
+//    }
 
-};
+//};
 }}}}
 
 namespace  // Concrete FSM implementation
 {
+    struct Event1
+    {
+        // if we specialize, we need to provide this
+        typedef Event1 type;
+        std::string name()const
+        {
+            return BOOST_MSM_EUML2_NAME_FCT(BOOST_MSM_EUML2_NAME("Event1"));
+        }
+        // we want our own ctor
+        Event1()
+        {
+            std::cout << "Event1 ctor called" << std::endl;
+        }
+
+    };
+
+    struct doItAction
+    {
+        typedef doItAction type;
+        template <class EVT,class FSM,class SourceState,class TargetState>
+        void operator()(EVT const&, FSM&,SourceState& ,TargetState& )
+        {
+            std::cout << "called doItAction" << std::endl;
+        }
+    };
+    struct okGuard
+    {
+        typedef okGuard type;
+        template <class EVT,class FSM,class SourceState,class TargetState>
+        bool operator()(EVT const&, FSM&,SourceState& ,TargetState& )
+        {
+            std::cout << "called okGuard" << std::endl;
+            return true;
+        }
+    };
 
     struct logging_base_state
     {
@@ -67,7 +102,21 @@ namespace  // Concrete FSM implementation
         }
         virtual std::string name() const {return "";}
     };
-
+    struct State2 : public boost::msm::front::state<logging_base_state>
+    {
+        typedef State2 type;
+        template <class Event, class Fsm>
+        void on_entry(Event const& evt, Fsm& fsm)
+        {
+            logging_base_state::on_entry(evt,fsm);
+        }
+        template <class Event, class Fsm>
+        void on_exit(Event const& evt, Fsm& fsm)
+        {
+            logging_base_state::on_exit(evt,fsm);
+        }
+        std::string name() const {return "OwnState2";}
+    };
     // front-end: define the FSM structure
     struct player_ : public msm::front::state_machine_def<player_,logging_base_state>
     {
@@ -77,7 +126,10 @@ namespace  // Concrete FSM implementation
         // Transition table for player
         EUML2_STT(
             player_,
-            EUML2_STT_CFG(),
+            EUML2_STT_CFG(EUML2_STT_USE("doIt",doItAction),
+                          EUML2_STT_USE("Event1",Event1),
+                          EUML2_STT_USE("ok",okGuard),
+                          EUML2_STT_USE("State2",State2)),
             //     +---------------------------------------------------------------------------------------+
             EUML2_ROW("State1 + Event1 / doIt       -> State2"),
             EUML2_ROW("State1 + *      / doIt       -> State2"),
@@ -110,6 +162,7 @@ void test()
     p.start();
     // go to State2
     p.process_event(BOOST_MSM_EUML2_EVENT("Event1",player_)()); pstate(p);
+    // p.process_event(Event1()); pstate(p);
     // go to State1
     p.process_event(BOOST_MSM_EUML2_EVENT("Event2",player_)()); pstate(p);
     // go to State2 using kleene (* = any) event
