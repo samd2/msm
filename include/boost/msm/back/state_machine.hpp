@@ -214,7 +214,7 @@ private:
     typedef bool (*flag_handler)(library_sm const&);
 
     // all state machines are friend with each other to allow embedding any of them in another fsm
-    template <class ,class , class, class, class
+    template <class ,class , class, class, class, class
     > friend class boost::msm::back::state_machine;
 
     // helper to add, if needed, visitors to all states
@@ -354,8 +354,8 @@ private:
         }    
         exit_pt():m_forward(){}
         // by assignments, we keep our forwarding functor unchanged as our containing SM did not change
-    template <class RHS>
-        exit_pt(RHS& rhs):m_forward(){}
+        template <class RHS>
+        exit_pt(RHS& ):m_forward(){}
         exit_pt<ExitPoint>& operator= (const exit_pt<ExitPoint>& ) 
         { 
             return *this; 
@@ -1294,7 +1294,7 @@ private:
         m_events_queue.m_events_queue.push_back(f);
     }
     template <class EventType>
-    void enqueue_event_helper(EventType const& evt, ::boost::mpl::true_ const &)
+    void enqueue_event_helper(EventType const&, ::boost::mpl::true_ const &)
     {
         // no queue
     }
@@ -1387,7 +1387,7 @@ private:
             >::type
             ,void 
         >::type
-        operator()(T& t) const
+        operator()(T&) const
         {
             // no state to serialize
         }
