@@ -54,8 +54,6 @@ namespace  // Concrete FSM implementation
 {
     struct Event1
     {
-        // if we specialize, we need to provide this
-        typedef Event1 type;
         std::string name()const
         {
             return BOOST_MSM_EUML2_NAME_FCT(BOOST_MSM_EUML2_NAME("Event1"));
@@ -70,7 +68,6 @@ namespace  // Concrete FSM implementation
 
     struct doItAction
     {
-        typedef doItAction type;
         template <class EVT,class FSM,class SourceState,class TargetState>
         void operator()(EVT const&, FSM&,SourceState& ,TargetState& )
         {
@@ -79,7 +76,6 @@ namespace  // Concrete FSM implementation
     };
     struct okGuard
     {
-        typedef okGuard type;
         template <class EVT,class FSM,class SourceState,class TargetState>
         bool operator()(EVT const&, FSM&,SourceState& ,TargetState& )
         {
@@ -104,7 +100,6 @@ namespace  // Concrete FSM implementation
     };
     struct State2 : public boost::msm::front::state<logging_base_state>
     {
-        typedef State2 type;
         template <class Event, class Fsm>
         void on_entry(Event const& evt, Fsm& fsm)
         {

@@ -535,7 +535,6 @@ struct eval_name_type
         boost::mpl::identity<void>
     >::type type;
 };
-
 template <typename Fsm,typename Cfg,typename Stt>
 struct stt_helper
 {
@@ -545,12 +544,12 @@ struct stt_helper
         ::boost::mpl::push_back<
             ::boost::mpl::placeholders::_1,
             ::boost::msm::front::Row<
-                boost::mpl::eval_if<
+                boost::mpl::if_<
                     boost::mpl::has_key<Cfg,eval_name_type<get_source_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::at<Cfg,eval_name_type<get_source_from_row< ::boost::mpl::placeholders::_2>>>,
                     make_source_from_row< Fsm,::boost::mpl::placeholders::_2>
                 >,
-                boost::mpl::eval_if<
+                boost::mpl::if_<
                     boost::mpl::has_key<Cfg,eval_name_type<get_event_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::at<Cfg,eval_name_type<get_event_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::eval_if<
@@ -559,7 +558,7 @@ struct stt_helper
                         get_event_from_row< ::boost::mpl::placeholders::_2>
                     >
                 >,
-                boost::mpl::eval_if<
+                boost::mpl::if_<
                     boost::mpl::has_key<Cfg,eval_name_type<get_target_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::at<Cfg,eval_name_type<get_target_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::eval_if<
@@ -568,7 +567,7 @@ struct stt_helper
                         get_target_from_row< ::boost::mpl::placeholders::_2>
                     >
                 >,
-                boost::mpl::eval_if<
+                boost::mpl::if_<
                     boost::mpl::has_key<Cfg,eval_name_type<get_action_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::at<Cfg,eval_name_type<get_action_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::eval_if<
@@ -577,7 +576,7 @@ struct stt_helper
                         get_action_from_row< ::boost::mpl::placeholders::_2>
                     >
                 >,
-                boost::mpl::eval_if<
+                boost::mpl::if_<
                     boost::mpl::has_key<Cfg,eval_name_type<get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::at<Cfg,eval_name_type<get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::eval_if<
