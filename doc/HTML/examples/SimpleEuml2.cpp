@@ -121,14 +121,14 @@ namespace  // Concrete FSM implementation
         // Transition table for player
         EUML2_STT(
             player_,
-            EUML2_STT_CFG(EUML2_STT_USE("doIt",doItAction),
+            EUML2_STT_CFG(//EUML2_STT_USE("doIt",doItAction),
                           EUML2_STT_USE("Event1",Event1),
-                          EUML2_STT_USE("ok",okGuard),
+                          //EUML2_STT_USE("ok",okGuard),
                           EUML2_STT_USE("State2",State2)),
             //     +---------------------------------------------------------------------------------------+
             EUML2_ROW("State1 + Event1 / doIt       -> State2"),
             EUML2_ROW("State1 + *      / doIt       -> State2"),
-            EUML2_ROW("State2 + Event2 [ok] / doIt  -> State1"),
+            EUML2_ROW("State2 + Event2 [ok && (noway || ok)] / doIt, doIt  -> State1"),
             EUML2_ROW("State2 + Event2 [noway]      -> State1")
             //     +---------------------------------------------------------------------------------------+
         )

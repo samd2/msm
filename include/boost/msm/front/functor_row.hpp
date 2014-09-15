@@ -286,6 +286,27 @@ namespace boost { namespace msm { namespace front
     {
         typedef ActionSequence_ type;
         typedef Sequence sequence;
+        // needed for euml2
+        typedef int name_type;
+        template <class Fsm, class T>
+        struct make_recurse
+        {
+            typedef typename T::template recurse<Fsm>::type type;
+        };
+
+        template <class Fsm>
+        struct recurse
+        {
+            typedef ActionSequence_<typename boost::mpl::fold<
+                        Sequence,
+                        boost::mpl::vector<>,
+                        ::boost::mpl::push_back<
+                            ::boost::mpl::placeholders::_1,
+                            make_recurse< Fsm, ::boost::mpl::placeholders::_2>
+                        >
+                    >::type> type;
+        };
+
         // if one functor of the sequence defers events, the complete sequence does
         typedef ::boost::mpl::bool_< 
             ::boost::mpl::count_if<sequence, 

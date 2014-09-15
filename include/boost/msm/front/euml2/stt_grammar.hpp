@@ -135,6 +135,11 @@ struct euml2_action
 {
     typedef Name name_type;
     typedef euml2_action type;
+    template <class Fsm>
+    struct recurse
+    {
+        typedef euml2_action<Name,Fsm> type;
+    };
     // returns name of this object (as given in transition table)
     std::string name()const
     {
@@ -151,6 +156,11 @@ struct euml2_guard
 {
     typedef Name name_type;
     typedef euml2_guard type;
+    template <class Fsm>
+    struct recurse
+    {
+        typedef euml2_guard<Name,Fsm> type;
+    };
     // returns name of this object (as given in transition table)
     std::string name()const
     {
@@ -512,12 +522,21 @@ struct make_target_from_row
 template <class Fsm,class T>
 struct make_action_from_row
 {
-    typedef euml2_action<typename T::Action::name_type,Fsm> type;
+    //recursion for sequence
+    typedef typename T::Action::template recurse<Fsm>::type type;
 };
+
+template <class Fsm,class T>
+struct make_guard_from_row_helper
+{
+    typedef euml2_guard<typename T::name_type,Fsm> type;
+};
+
 template <class Fsm,class T>
 struct make_guard_from_row
 {
-    typedef euml2_guard<typename T::Guard::name_type,Fsm> type;
+    //recursion for operators
+    typedef typename T::Guard::template recurse<Fsm>::type type;
 };
 
 template <class T>
