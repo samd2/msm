@@ -32,11 +32,11 @@ struct Or_ : euml_action<Or_<T1,T2> >
     typedef Or_ type;
     // needed for euml2
     typedef int name_type;
-    template <class Fsm>
+    template <class Op,class Param>
     struct recurse
     {
-        typedef Or_<typename T1::template recurse<Fsm>::type,
-                    typename T2::template recurse<Fsm>::type> type;
+        typedef Or_<typename T1::template recurse<Op,Param>::type,
+                    typename T2::template recurse<Op,Param>::type> type;
     };
 
     template <class EVT,class FSM,class SourceState,class TargetState>
@@ -56,11 +56,11 @@ struct And_ : euml_action<And_<T1,T2> >
     typedef And_ type;
     // needed for euml2
     typedef int name_type;
-    template <class Fsm>
+    template <class Op,class Param>
     struct recurse
     {
-        typedef And_<typename T1::template recurse<Fsm>::type,
-                     typename T2::template recurse<Fsm>::type> type;
+        typedef And_<typename T1::template recurse<Op,Param>::type,
+                     typename T2::template recurse<Op,Param>::type> type;
     };
 
     template <class EVT,class FSM,class SourceState,class TargetState>
@@ -80,10 +80,10 @@ struct Not_ : euml_action<Not_<T1> >
     typedef Not_ type;    
     // needed for euml2
     typedef int name_type;
-    template <class Fsm>
+    template <class Op,class Param>
     struct recurse
     {
-        typedef Not_<typename T1::template recurse<Fsm>::type> type;
+        typedef Not_<typename T1::template recurse<Op,Param>::type> type;
     };
 
     template <class EVT,class FSM,class SourceState,class TargetState>
@@ -1544,11 +1544,11 @@ struct EqualTo_ : euml_action<EqualTo_<T1,T2> >
     typedef EqualTo_ type;
     // needed for euml2
     typedef int name_type;
-    template <class Fsm>
+    template <class Op,class Param>
     struct recurse
     {
-        typedef EqualTo_<typename T1::template recurse<Fsm>::type,
-                         typename T2::template recurse<Fsm>::type> type;
+        typedef EqualTo_<typename T1::template recurse<Op,Param>::type,
+                         typename T2::template recurse<Op,Param>::type> type;
     };
 
     template <class Event,class FSM,class STATE >
@@ -1580,11 +1580,11 @@ struct NotEqualTo_ : euml_action<NotEqualTo_<T1,T2> >
     typedef NotEqualTo_ type;
     // needed for euml2
     typedef int name_type;
-    template <class Fsm>
+    template <class Op,class Param>
     struct recurse
     {
-        typedef NotEqualTo_<typename T1::template recurse<Fsm>::type,
-                            typename T2::template recurse<Fsm>::type> type;
+        typedef NotEqualTo_<typename T1::template recurse<Op,Param>::type,
+                            typename T2::template recurse<Op,Param>::type> type;
     };
 
     template <class Event,class FSM,class STATE >

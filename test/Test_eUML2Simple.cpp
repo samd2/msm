@@ -72,9 +72,6 @@ namespace
         // the initial state of the player SM. Must be defined
         using initial_state = BOOST_MSM_EUML2_STATE("Empty",player_) ;
 
-
-
-
         // Transition table for player
         EUML2_STT(
             player_,

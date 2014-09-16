@@ -288,13 +288,13 @@ namespace boost { namespace msm { namespace front
         typedef Sequence sequence;
         // needed for euml2
         typedef int name_type;
-        template <class Fsm, class T>
+        template <class Op,class Param, class T>
         struct make_recurse
         {
-            typedef typename T::template recurse<Fsm>::type type;
+            typedef typename T::template recurse<Op,Param>::type type;
         };
 
-        template <class Fsm>
+        template <class Op,class Param>
         struct recurse
         {
             typedef ActionSequence_<typename boost::mpl::fold<
@@ -302,7 +302,7 @@ namespace boost { namespace msm { namespace front
                         boost::mpl::vector<>,
                         ::boost::mpl::push_back<
                             ::boost::mpl::placeholders::_1,
-                            make_recurse< Fsm, ::boost::mpl::placeholders::_2>
+                            make_recurse< Op, Param, ::boost::mpl::placeholders::_2>
                         >
                     >::type> type;
         };

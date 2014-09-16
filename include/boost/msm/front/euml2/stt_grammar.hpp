@@ -135,10 +135,21 @@ struct euml2_action
 {
     typedef Name name_type;
     typedef euml2_action type;
+    typedef euml2_action this_type;
+    template <class T>
+    struct replace
+    {
+        typedef T type;
+    };
     template <class Fsm>
-    struct recurse
+    struct convert_name
     {
         typedef euml2_action<Name,Fsm> type;
+    };
+    template <class Op,class Param>
+    struct recurse
+    {
+        typedef typename Op::template apply<this_type>::type type;
     };
     // returns name of this object (as given in transition table)
     std::string name()const
@@ -156,10 +167,21 @@ struct euml2_guard
 {
     typedef Name name_type;
     typedef euml2_guard type;
+    typedef euml2_guard this_type;
+    template <class T>
+    struct replace
+    {
+        typedef T type;
+    };
     template <class Fsm>
-    struct recurse
+    struct convert_name
     {
         typedef euml2_guard<Name,Fsm> type;
+    };
+    template <class Op,class Param>
+    struct recurse
+    {
+        typedef typename Op::template apply<this_type>::type type;
     };
     // returns name of this object (as given in transition table)
     std::string name()const
@@ -519,24 +541,37 @@ struct make_target_from_row
 {
     typedef euml2_state<typename T::Target::name_type,Fsm> type;
 };
+
+// use the given tag (Fsm) on the action to avoid ODL problems
 template <class Fsm,class T>
-struct make_action_from_row
-{
+struct make_tag_for_action
+{    
+    struct replace_name
+    {
+        template <class U>
+        struct apply
+        {
+            typedef typename U::template convert_name<Fsm>::type type;
+        };
+    };
+
     //recursion for sequence
-    typedef typename T::Action::template recurse<Fsm>::type type;
+    typedef typename T::Action::template recurse<replace_name,Fsm>::type type;
 };
-
+// use the given tag (Fsm) on the guard to avoid ODL problems
 template <class Fsm,class T>
-struct make_guard_from_row_helper
+struct make_tag_for_guard
 {
-    typedef euml2_guard<typename T::name_type,Fsm> type;
-};
-
-template <class Fsm,class T>
-struct make_guard_from_row
-{
+    struct replace_name
+    {
+        template <class U>
+        struct apply
+        {
+            typedef typename U::template convert_name<Fsm>::type type;
+        };
+    };
     //recursion for operators
-    typedef typename T::Guard::template recurse<Fsm>::type type;
+    typedef typename T::Guard::template recurse<replace_name,Fsm>::type type;
 };
 
 template <class T>
@@ -554,6 +589,31 @@ struct eval_name_type
         boost::mpl::identity<void>
     >::type type;
 };
+
+// replaces for a given guard the names by the types provided in the config
+template <class Cfg,class T>
+struct replace_from_cfg_for_guard
+{
+    struct find_and_replace_if_found
+    {
+        template <class U>
+        struct apply
+        {
+            typedef typename boost::mpl::if_<
+                boost::mpl::has_key<Cfg,eval_name_type<U>>,
+                typename U::template replace<typename boost::mpl::at<Cfg,eval_name_type<U>>::type>::type,
+                U
+            >::type type;
+
+            //typedef typename U::template replace<Fsm>::type type;
+        };
+    };
+    //recursion for operators
+    typedef typename T::Guard::template recurse<find_and_replace_if_found,Cfg>::type type;
+
+};
+
+
 template <typename Fsm,typename Cfg,typename Stt>
 struct stt_helper
 {
@@ -591,7 +651,7 @@ struct stt_helper
                     boost::mpl::at<Cfg,eval_name_type<get_action_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::eval_if<
                         has_name_type< get_action_from_row< ::boost::mpl::placeholders::_2>>,
-                        make_action_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                        make_tag_for_action< Fsm, ::boost::mpl::placeholders::_2>,
                         get_action_from_row< ::boost::mpl::placeholders::_2>
                     >
                 >,
@@ -600,7 +660,7 @@ struct stt_helper
                     boost::mpl::at<Cfg,eval_name_type<get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::eval_if<
                         has_name_type< get_guard_from_row< ::boost::mpl::placeholders::_2>>,
-                        make_guard_from_row< Fsm, ::boost::mpl::placeholders::_2>,
+                        make_tag_for_guard< Fsm, ::boost::mpl::placeholders::_2>,
                         get_guard_from_row< ::boost::mpl::placeholders::_2>
                     >
                 >
