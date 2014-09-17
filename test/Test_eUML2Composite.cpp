@@ -44,24 +44,6 @@ namespace
         std::string name;
         DiskTypeEnum disc_type;
     };
-    // an action and a guard which we had written for another fsm and want to reuse, without using the neu eUML2 way (see below start_pback)
-    struct test_fct
-    {
-        template <class EVT,class FSM,class SourceState,class TargetState>
-        void operator()(EVT const&, FSM& fsm,SourceState& ,TargetState& )
-        {
-            ++fsm.test_fct_counter;
-        }
-    };
-    struct always_true
-    {
-        template <class EVT,class FSM,class SourceState,class TargetState>
-        bool operator()(EVT const&, FSM& fsm,SourceState& ,TargetState& )
-        {
-            ++fsm.test_guard_counter;
-            return true;
-        }
-    };
 
     struct counting_base_state
     {
@@ -72,19 +54,39 @@ namespace
         int entry_counter=0;
         int exit_counter=0;
     };
+    // submachine
+    struct Playing_ : public msm::front::state_machine_def<Playing_,counting_base_state>
+    {
+        // the initial state of the player SM. Must be defined
+        using initial_state = BOOST_MSM_EUML2_STATE("Song1",Playing_) ;
+        using counting_base_state::on_entry;
+        using counting_base_state::on_exit;
+        // Transition table for Playing
+        EUML2_STT(
+            Playing_,
+            EUML2_STT_CFG(),
+            //     +---------------------------------------------------------------------------------------+
+            EUML2_ROW("Song1 + next_song  -> Song2"),
+            EUML2_ROW("Song2 + prev_song  -> Song1"),
+            EUML2_ROW("Song2 + next_song  -> Song3"),
+            EUML2_ROW("Song3 + prev_song  -> Song2")
+            //     +---------------------------------------------------------------------------------------+
+        )
+    };
+    // back-end
+    typedef msm::back::state_machine<Playing_> Playing;
+
     // front-end: define the FSM structure
     struct player_ : public msm::front::state_machine_def<player_,counting_base_state>
     {
         unsigned int start_playback_counter;
         unsigned int can_close_drawer_counter;
         unsigned int test_fct_counter;
-        unsigned int test_guard_counter;
 
         player_():
         start_playback_counter(0),
         can_close_drawer_counter(0),
-        test_fct_counter(0),
-        test_guard_counter(0)
+        test_fct_counter(0)
         {}
 
         // the initial state of the player SM. Must be defined
@@ -95,9 +97,7 @@ namespace
             player_,
             // list here the names for which we want to provide our own type, not the ones from eUML2
             // (for which an implementation is provided below)
-            EUML2_STT_CFG(EUML2_STT_USE("cd_detected",cd_detected),
-                          EUML2_STT_USE("test_fct",test_fct),
-                          EUML2_STT_USE("always_true",always_true)),
+            EUML2_STT_CFG(EUML2_STT_USE("cd_detected",cd_detected),EUML2_STT_USE("Playing",Playing)),
             //     +---------------------------------------------------------------------------------------+
             EUML2_ROW("Stopped + play        [dummy]     / start_pback,test_fct -> Playing"),
             EUML2_ROW("Stopped + open_close              / open_drawer   -> Open"),
@@ -117,7 +117,7 @@ namespace
         template <class FSM,class Event>
         void no_transition(Event const&, FSM&,int)
         {
-            BOOST_FAIL("no_transition called!");
+            BOOST_ERROR("no_transition called!");
         }
         // init counters
         template <class Event,class FSM>
@@ -143,6 +143,12 @@ void BOOST_MSM_EUML2_ACTION_IMPL("store_cd",player_)::operator()(Event const&, F
 {
     fsm.process_event(BOOST_MSM_EUML2_EVENT("play",player_)());
 }
+template<>
+template <class Event,class Fsm,class SourceState,class TargetState>
+void BOOST_MSM_EUML2_ACTION_IMPL("test_fct",player_)::operator()(Event const&, Fsm& fsm,SourceState& ,TargetState& )
+{
+    ++fsm.test_fct_counter;
+}
 // guard conditions (the standard way)
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
@@ -163,7 +169,7 @@ bool BOOST_MSM_EUML2_GUARD_IMPL("can_close",player_)::operator()(Event const&, F
     return true;
 }
 
-BOOST_AUTO_TEST_CASE( test_euml2_simple )
+BOOST_AUTO_TEST_CASE( test_euml2_composite )
 {
     player p;
 
@@ -193,25 +199,54 @@ BOOST_AUTO_TEST_CASE( test_euml2_simple )
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Empty",player_)&>().exit_counter == 2,"Empty exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Stopped",player_)&>().entry_counter == 1,"Stopped entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Stopped",player_)&>().exit_counter == 1,"Stopped exit not called correctly");
-    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Playing",player_)&>().entry_counter == 1,"Playing entry not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<Playing&>().entry_counter == 1,"Playing entry not called correctly");
     BOOST_CHECK_MESSAGE(p.start_playback_counter == 1,"action not called correctly");
     BOOST_CHECK_MESSAGE(p.test_fct_counter == 1,"action not called correctly");
-    BOOST_CHECK_MESSAGE(p.test_guard_counter == 1,"always_true not called correctly");
+
+    p.process_event(BOOST_MSM_EUML2_EVENT("next_song",Playing_)());
+    BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Playing should be active"); //Playing
+    BOOST_CHECK_MESSAGE(p.get_state<Playing&>().current_state()[0] == 1,"Song2 should be active");
+    BOOST_CHECK_MESSAGE(
+        p.get_state<Playing&>().get_state<BOOST_MSM_EUML2_STATE_IMPL("Song2",Playing_)&>().entry_counter == 1,
+        "Song2 entry not called correctly");
+    BOOST_CHECK_MESSAGE(
+        p.get_state<Playing&>().get_state<BOOST_MSM_EUML2_STATE_IMPL("Song1",Playing_)&>().exit_counter == 1,
+        "Song1 exit not called correctly");
+
+    p.process_event(BOOST_MSM_EUML2_EVENT("next_song",Playing_)());
+    BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Playing should be active"); //Playing
+    BOOST_CHECK_MESSAGE(p.get_state<Playing&>().current_state()[0] == 2,"Song3 should be active");
+    BOOST_CHECK_MESSAGE(
+        p.get_state<Playing&>().get_state<BOOST_MSM_EUML2_STATE_IMPL("Song3",Playing_)&>().entry_counter == 1,
+        "Song3 entry not called correctly");
+    BOOST_CHECK_MESSAGE(
+        p.get_state<Playing&>().get_state<BOOST_MSM_EUML2_STATE_IMPL("Song2",Playing_)&>().exit_counter == 1,
+        "Song2 exit not called correctly");
+
+    p.process_event(BOOST_MSM_EUML2_EVENT("prev_song",Playing_)());
+    BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Playing should be active"); //Playing
+    BOOST_CHECK_MESSAGE(p.get_state<Playing&>().current_state()[0] == 1,"Song2 should be active");
+    BOOST_CHECK_MESSAGE(
+        p.get_state<Playing&>().get_state<BOOST_MSM_EUML2_STATE_IMPL("Song2",Playing_)&>().entry_counter == 2,
+        "Song2 entry not called correctly");
+    BOOST_CHECK_MESSAGE(
+        p.get_state<Playing&>().get_state<BOOST_MSM_EUML2_STATE_IMPL("Song3",Playing_)&>().exit_counter == 1,
+        "Song3 exit not called correctly");
 
     p.process_event(BOOST_MSM_EUML2_EVENT("pause",player_)());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 4,"Paused should be active"); //Paused
-    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Playing",player_)&>().exit_counter == 1,"Playing exit not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<Playing&>().exit_counter == 1,"Playing exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Paused",player_)&>().entry_counter == 1,"Paused entry not called correctly");
 
     // go back to Playing
     p.process_event(BOOST_MSM_EUML2_EVENT("end_pause",player_)());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 3,"Playing should be active"); //Playing
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Paused",player_)&>().exit_counter == 1,"Paused exit not called correctly");
-    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Playing",player_)&>().entry_counter == 2,"Playing entry not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<Playing&>().entry_counter == 2,"Playing entry not called correctly");
 
     p.process_event(BOOST_MSM_EUML2_EVENT("pause",player_)());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 4,"Paused should be active"); //Paused
-    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Playing",player_)&>().exit_counter == 2,"Playing exit not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<Playing&>().exit_counter == 2,"Playing exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Paused",player_)&>().entry_counter == 2,"Paused entry not called correctly");
 
     p.process_event(BOOST_MSM_EUML2_EVENT("stop",player_)());
@@ -224,6 +259,7 @@ BOOST_AUTO_TEST_CASE( test_euml2_simple )
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Stopped",player_)&>().exit_counter == 2,"Stopped exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Stopped",player_)&>().entry_counter == 3,"Stopped entry not called correctly");
 }
+
 
 
 

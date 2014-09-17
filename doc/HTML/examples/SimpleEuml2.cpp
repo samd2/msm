@@ -100,16 +100,8 @@ namespace  // Concrete FSM implementation
     };
     struct State2 : public boost::msm::front::state<logging_base_state>
     {
-        template <class Event, class Fsm>
-        void on_entry(Event const& evt, Fsm& fsm)
-        {
-            logging_base_state::on_entry(evt,fsm);
-        }
-        template <class Event, class Fsm>
-        void on_exit(Event const& evt, Fsm& fsm)
-        {
-            logging_base_state::on_exit(evt,fsm);
-        }
+        using logging_base_state::on_entry;
+        using logging_base_state::on_exit;
         std::string name() const {return "OwnState2";}
     };
     // front-end: define the FSM structure
