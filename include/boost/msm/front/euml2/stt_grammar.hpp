@@ -556,7 +556,7 @@ struct make_tag_for_action
     };
 
     //recursion for sequence
-    typedef typename T::Action::template recurse<replace_name,Fsm>::type type;
+    typedef typename T::template recurse<replace_name,Fsm>::type type;
 };
 // use the given tag (Fsm) on the guard to avoid ODL problems
 template <class Fsm,class T>
@@ -571,7 +571,7 @@ struct make_tag_for_guard
         };
     };
     //recursion for operators
-    typedef typename T::Guard::template recurse<replace_name,Fsm>::type type;
+    typedef typename T::template recurse<replace_name,Fsm>::type type;
 };
 
 template <class T>
@@ -590,7 +590,7 @@ struct eval_name_type
     >::type type;
 };
 
-// replaces for a given guard the names by the types provided in the config
+// replaces for a given guard/action the names by the types provided in the config
 template <class Cfg,class T>
 struct replace_from_cfg_for_guard
 {
@@ -600,19 +600,20 @@ struct replace_from_cfg_for_guard
         struct apply
         {
             typedef typename boost::mpl::if_<
-                boost::mpl::has_key<Cfg,eval_name_type<U>>,
-                typename U::template replace<typename boost::mpl::at<Cfg,eval_name_type<U>>::type>::type,
+                boost::mpl::has_key<Cfg,typename eval_name_type<U>::type>,
+                typename U::template replace<typename boost::mpl::at<Cfg,typename eval_name_type<U>::type>::type>::type,
                 U
             >::type type;
-
-            //typedef typename U::template replace<Fsm>::type type;
         };
     };
     //recursion for operators
-    typedef typename T::Guard::template recurse<find_and_replace_if_found,Cfg>::type type;
-
+    typedef typename T::template recurse<find_and_replace_if_found,Cfg>::type type;
 };
-
+template <class Cfg>
+struct replace_from_cfg_for_guard<Cfg,boost::msm::front::none>
+{
+    typedef boost::msm::front::none type;
+};
 
 template <typename Fsm,typename Cfg,typename Stt>
 struct stt_helper
@@ -646,23 +647,15 @@ struct stt_helper
                         get_target_from_row< ::boost::mpl::placeholders::_2>
                     >
                 >,
-                boost::mpl::if_<
-                    boost::mpl::has_key<Cfg,eval_name_type<get_action_from_row< ::boost::mpl::placeholders::_2>>>,
-                    boost::mpl::at<Cfg,eval_name_type<get_action_from_row< ::boost::mpl::placeholders::_2>>>,
-                    boost::mpl::eval_if<
-                        has_name_type< get_action_from_row< ::boost::mpl::placeholders::_2>>,
-                        make_tag_for_action< Fsm, ::boost::mpl::placeholders::_2>,
-                        get_action_from_row< ::boost::mpl::placeholders::_2>
-                    >
+                boost::mpl::eval_if<
+                    has_name_type< get_action_from_row< ::boost::mpl::placeholders::_2>>,
+                    replace_from_cfg_for_guard<Cfg,make_tag_for_action< Fsm, get_action_from_row< ::boost::mpl::placeholders::_2>>>,
+                    get_action_from_row< ::boost::mpl::placeholders::_2>
                 >,
-                boost::mpl::if_<
-                    boost::mpl::has_key<Cfg,eval_name_type<get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
-                    boost::mpl::at<Cfg,eval_name_type<get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
-                    boost::mpl::eval_if<
-                        has_name_type< get_guard_from_row< ::boost::mpl::placeholders::_2>>,
-                        make_tag_for_guard< Fsm, ::boost::mpl::placeholders::_2>,
-                        get_guard_from_row< ::boost::mpl::placeholders::_2>
-                    >
+                boost::mpl::eval_if<
+                    has_name_type< get_guard_from_row< ::boost::mpl::placeholders::_2>>,
+                    replace_from_cfg_for_guard<Cfg,make_tag_for_guard< Fsm, get_guard_from_row< ::boost::mpl::placeholders::_2>>>,
+                    get_guard_from_row< ::boost::mpl::placeholders::_2>
                 >
             >
         >

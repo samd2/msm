@@ -66,12 +66,12 @@ namespace  // Concrete FSM implementation
 
     };
 
-    struct doItAction
+    struct doItAction2
     {
         template <class EVT,class FSM,class SourceState,class TargetState>
         void operator()(EVT const&, FSM&,SourceState& ,TargetState& )
         {
-            std::cout << "called doItAction" << std::endl;
+            std::cout << "called doItAction2" << std::endl;
         }
     };
     struct okGuard
@@ -121,14 +121,14 @@ namespace  // Concrete FSM implementation
         // Transition table for player
         EUML2_STT(
             player_,
-            EUML2_STT_CFG(//EUML2_STT_USE("doIt",doItAction),
+            EUML2_STT_CFG(EUML2_STT_USE("doIt2",doItAction2),
                           EUML2_STT_USE("Event1",Event1),
-                          //EUML2_STT_USE("ok",okGuard),
+                          EUML2_STT_USE("ok",okGuard),
                           EUML2_STT_USE("State2",State2)),
             //     +---------------------------------------------------------------------------------------+
             EUML2_ROW("State1 + Event1 / doIt       -> State2"),
             EUML2_ROW("State1 + *      / doIt       -> State2"),
-            EUML2_ROW("State2 + Event2 [ok && (noway || ok)] / doIt, doIt  -> State1"),
+            EUML2_ROW("State2 + Event2 [ok && (noway || ok)] / doIt, doIt2  -> State1"),
             EUML2_ROW("State2 + Event2 [noway]      -> State1")
             //     +---------------------------------------------------------------------------------------+
         )
@@ -143,7 +143,7 @@ namespace  // Concrete FSM implementation
     typedef msm::back::state_machine<player_> player;
 
     // Testing utilities.
-    void pstate(player const& p)
+    void pstate(player const& p )
     {
         // we can ask the state its name, easier!
         std::cout << "active state -> " << p.get_state_by_id(p.current_state()[0])->name() << std::endl;

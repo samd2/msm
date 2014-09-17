@@ -44,6 +44,25 @@ namespace
         std::string name;
         DiskTypeEnum disc_type;
     };
+    // an action and a guard which we had written for another fsm and want to reuse, without using the neu eUML2 way (see below start_pback)
+    struct test_fct
+    {
+        template <class EVT,class FSM,class SourceState,class TargetState>
+        void operator()(EVT const&, FSM& fsm,SourceState& ,TargetState& )
+        {
+            ++fsm.test_fct_counter;
+        }
+    };
+    struct always_true
+    {
+        template <class EVT,class FSM,class SourceState,class TargetState>
+        bool operator()(EVT const&, FSM& fsm,SourceState& ,TargetState& )
+        {
+            ++fsm.test_guard_counter;
+            return true;
+        }
+    };
+
     struct counting_base_state
     {
         template <class Event,class FSM>
@@ -59,11 +78,13 @@ namespace
         unsigned int start_playback_counter;
         unsigned int can_close_drawer_counter;
         unsigned int test_fct_counter;
+        unsigned int test_guard_counter;
 
         player_():
         start_playback_counter(0),
         can_close_drawer_counter(0),
-        test_fct_counter(0)
+        test_fct_counter(0),
+        test_guard_counter(0)
         {}
 
         // the initial state of the player SM. Must be defined
@@ -72,7 +93,11 @@ namespace
         // Transition table for player
         EUML2_STT(
             player_,
-            EUML2_STT_CFG(EUML2_STT_USE("cd_detected",cd_detected)),
+            // list here the names for which we want to provide our own type, not the ones from eUML2
+            // (for which an implementation is provided below)
+            EUML2_STT_CFG(EUML2_STT_USE("cd_detected",cd_detected),
+                          EUML2_STT_USE("test_fct",test_fct),
+                          EUML2_STT_USE("always_true",always_true)),
             //     +---------------------------------------------------------------------------------------+
             EUML2_ROW("Stopped + play        [dummy]     / start_pback,test_fct -> Playing"),
             EUML2_ROW("Stopped + open_close              / open_drawer   -> Open"),
@@ -115,7 +140,7 @@ namespace
     typedef msm::back::state_machine<player_> player;
 }
 
-// transition actions
+// transition actions (the standard way)
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
 void BOOST_MSM_EUML2_ACTION_IMPL("start_pback",player_)::operator()(Event const&, Fsm& fsm,SourceState& ,TargetState& )
@@ -124,17 +149,11 @@ void BOOST_MSM_EUML2_ACTION_IMPL("start_pback",player_)::operator()(Event const&
 }
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
-void BOOST_MSM_EUML2_ACTION_IMPL("test_fct",player_)::operator()(Event const&, Fsm& fsm,SourceState& ,TargetState& )
-{
-    ++fsm.test_fct_counter;
-}
-template<>
-template <class Event,class Fsm,class SourceState,class TargetState>
 void BOOST_MSM_EUML2_ACTION_IMPL("store_cd",player_)::operator()(Event const&, Fsm& fsm,SourceState& ,TargetState& )
 {
     fsm.process_event(BOOST_MSM_EUML2_EVENT("play",player_)());
 }
-// guard conditions
+// guard conditions (the standard way)
 template<>
 template <class Event,class Fsm,class SourceState,class TargetState>
 bool BOOST_MSM_EUML2_GUARD_IMPL("good_disk",player_)::operator()(Event const& evt, Fsm&,SourceState& ,TargetState& )
@@ -187,6 +206,7 @@ BOOST_AUTO_TEST_CASE( my_test )
     BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("Playing",player_)&>().entry_counter == 1,"Playing entry not called correctly");
     BOOST_CHECK_MESSAGE(p.start_playback_counter == 1,"action not called correctly");
     BOOST_CHECK_MESSAGE(p.test_fct_counter == 1,"action not called correctly");
+    BOOST_CHECK_MESSAGE(p.test_guard_counter == 1,"always_true not called correctly");
 
     p.process_event(BOOST_MSM_EUML2_EVENT("pause",player_)());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 4,"Paused should be active"); //Paused
