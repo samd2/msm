@@ -18,9 +18,6 @@
 #define MPLLIBS_LIMIT_STRING_SIZE BOOST_MPL_LIMIT_STRING_SIZE
 #include <boost/msm/front/euml2/stt_grammar.hpp>
 
-#ifndef BOOST_MSM_NONSTANDALONE_TEST
-#define BOOST_TEST_MODULE MyTest
-#endif
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
