@@ -356,7 +356,8 @@ struct dispatch_table
                         ::boost::mpl::filter_view
                             <Stt, boost::mpl::or_<
                                     ::boost::is_base_of<transition_event< ::boost::mpl::placeholders::_>, Event>,
-                                    ::boost::msm::is_kleene_event<transition_event< ::boost::mpl::placeholders::_> >
+                                    ::boost::mpl::and_< ::boost::msm::is_kleene_event<transition_event< ::boost::mpl::placeholders::_> >,
+                                                        ::boost::mpl::not_<is_completion_event<Event> > >
                                     >
                             >,
                         // build a map
