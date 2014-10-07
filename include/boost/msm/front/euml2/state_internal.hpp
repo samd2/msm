@@ -8,42 +8,32 @@
 // file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef BOOST_MSM_FRONT_EUML2_STT_GRAMMAR_H
-#define BOOST_MSM_FRONT_EUML2_STT_GRAMMAR_H
+#ifndef BOOST_MSM_FRONT_EUML2_STATE_INTERNAL_HPP
+#define BOOST_MSM_FRONT_EUML2_STATE_INTERNAL_HPP
 
 #include <boost/msm/front/euml2/detail/common.hpp>
-
 
 namespace boost { namespace msm { namespace front { namespace euml2
 {
 // transform a row
-struct transition_transform
+struct internal_transition_transform
 {
-    typedef transition_transform type;
+    typedef internal_transition_transform type;
 
     template <class ResultOfSequence>
     struct apply :
-    boost::msm::front::Row<
-      boost::msm::front::euml2::euml2_state<typename boost::mpl::at_c<ResultOfSequence, 0>::type>,
-      typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 1>::type>::type,
-      typename boost::msm::front::euml2::make_euml2_state<typename boost::mpl::at_c<ResultOfSequence, 4>::type>::type,
-      typename boost::msm::front::euml2::make_euml2_action<typename boost::mpl::at_c<ResultOfSequence, 3>::type>::type,
-      typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type
+    boost::msm::front::Internal<
+      typename boost::msm::front::euml2::make_euml2_event<typename boost::mpl::at_c<ResultOfSequence, 0>::type>::type,
+      typename boost::msm::front::euml2::make_euml2_action<typename boost::mpl::at_c<ResultOfSequence, 2>::type>::type,
+      typename boost::msm::front::euml2::make_euml2_guard<typename boost::mpl::at_c<ResultOfSequence, 1>::type>::type
     >
     {};
 };
-struct transition_parser :
+struct internal_transition_parser :
   mpllibs::metaparse::transform<
     mpllibs::metaparse::sequence<
       // metaparse::token is used to consume whitespaces after token_name
       token_name,
-      mpllibs::metaparse::one_of<
-          mpllibs::metaparse::last_of<
-              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'+'> >,
-              token_name
-          >,
-          mpllibs::metaparse::return_<boost::msm::front::none>
-      >,
       mpllibs::metaparse::one_of<
           mpllibs::metaparse::middle_of<
               mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'['> >,
@@ -58,36 +48,23 @@ struct transition_parser :
               action_exp
           >,
           mpllibs::metaparse::return_<boost::msm::front::none>
-      >,
-      mpllibs::metaparse::one_of<
-          mpllibs::metaparse::last_of<
-              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'-'> >,
-              mpllibs::metaparse::token<mpllibs::metaparse::lit_c<'>'> >,
-              token_name
-          >,
-          mpllibs::metaparse::return_<boost::msm::front::none>
       >
     >,
-    transition_transform
+    internal_transition_transform
   >
   {};
 
-typedef mpllibs::metaparse::build_parser<transition_parser> row_parser;
+typedef mpllibs::metaparse::build_parser<internal_transition_parser> internal_row_parser;
 
 template <typename Fsm,typename Cfg,typename Stt>
-struct stt_helper
+struct internal_stt_helper
 {
     typedef typename ::boost::mpl::fold<
         Stt,
         ::boost::mpl::vector<>,
         ::boost::mpl::push_back<
             ::boost::mpl::placeholders::_1,
-            ::boost::msm::front::Row<
-                boost::mpl::if_<
-                    boost::mpl::has_key<Cfg,eval_name_type<get_source_from_row< ::boost::mpl::placeholders::_2>>>,
-                    boost::mpl::at<Cfg,eval_name_type<get_source_from_row< ::boost::mpl::placeholders::_2>>>,
-                    make_source_from_row< Fsm,::boost::mpl::placeholders::_2>
-                >,
+            ::boost::msm::front::Internal<
                 boost::mpl::if_<
                     boost::mpl::has_key<Cfg,eval_name_type<get_event_from_row< ::boost::mpl::placeholders::_2>>>,
                     boost::mpl::at<Cfg,eval_name_type<get_event_from_row< ::boost::mpl::placeholders::_2>>>,
@@ -95,15 +72,6 @@ struct stt_helper
                         has_name_type< get_event_from_row< ::boost::mpl::placeholders::_2>>,
                         make_event_from_row< Fsm, ::boost::mpl::placeholders::_2>,
                         get_event_from_row< ::boost::mpl::placeholders::_2>
-                    >
-                >,
-                boost::mpl::if_<
-                    boost::mpl::has_key<Cfg,eval_name_type<get_target_from_row< ::boost::mpl::placeholders::_2>>>,
-                    boost::mpl::at<Cfg,eval_name_type<get_target_from_row< ::boost::mpl::placeholders::_2>>>,
-                    boost::mpl::eval_if<
-                        has_name_type< get_target_from_row< ::boost::mpl::placeholders::_2>>,
-                        make_target_from_row< Fsm, ::boost::mpl::placeholders::_2>,
-                        get_target_from_row< ::boost::mpl::placeholders::_2>
                     >
                 >,
                 boost::mpl::eval_if<
@@ -120,7 +88,6 @@ struct stt_helper
         >
     >::type type;
 };
+
 }}}}
-
-
-#endif //BOOST_MSM_FRONT_EUML2_STT_GRAMMAR_H
+#endif // BOOST_MSM_FRONT_EUML2_STATE_INTERNAL_HPP

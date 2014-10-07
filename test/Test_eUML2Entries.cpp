@@ -16,7 +16,7 @@
 // eUML2 stt grammar
 #define BOOST_MPL_LIMIT_STRING_SIZE 65
 #define MPLLIBS_LIMIT_STRING_SIZE BOOST_MPL_LIMIT_STRING_SIZE
-#include <boost/msm/front/euml2/stt_grammar.hpp>
+#include <boost/msm/front/euml2/euml2.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -30,6 +30,7 @@ namespace
     struct event2 {};
     struct event3 {};
     struct event4 {};
+    struct event5 {};
     struct event6
     {
         event6(){}
@@ -90,8 +91,10 @@ namespace
                           EUML2_STT_USE("SubState2b",SubState2b),
                           EUML2_STT_USE("PseudoEntry1",PseudoEntry1),
                           EUML2_STT_USE("PseudoExit1",PseudoExit1),
-                          EUML2_STT_USE("event6",event6),
-                          EUML2_STT_USE("event4",event4)),
+                          EUML2_STT_USE("event4",event4),
+                          EUML2_STT_USE("event5",event5),
+                          EUML2_STT_USE("event6",event6)
+                          ),
             //     +---------------------------------------------------------------------------------------+
             EUML2_ROW("PseudoEntry1 + event4 / entry_action -> SubState3"),
             EUML2_ROW("SubState2    + event6                -> SubState1"),
@@ -109,37 +112,34 @@ namespace
     // front-end: define the FSM structure
     struct Fsm_ : public msm::front::state_machine_def<Fsm_,counting_base_state>
     {
-
-        // The list of FSM states
-        struct State1 : public msm::front::state<counting_base_state>
-        {
-            using counting_base_state::on_entry;
-            using counting_base_state::on_exit;
-        };
-        struct State2 : public msm::front::state<counting_base_state>
-        {
-            using counting_base_state::on_entry;
-            using counting_base_state::on_exit;
-        };
         // the initial state of the player SM. Must be defined
-        using initial_state = State1 ;
+        using initial_state = BOOST_MSM_EUML2_STATE("State1",Fsm_) ;
+        // declare fork to to substates
+        typedef boost::mpl::vector<SubFsm2::direct<SubFsm2_::SubState2>,SubFsm2::direct<SubFsm2_::SubState2b> > SubState2_2b;
 
         // Transition table for Fsm
-        struct transition_table : mpl::vector<
-            //    Start                 Event    Next                                 Action  Guard
-            //   +---------------------+--------+------------------------------------+-------+--------+
-            _row < State1              , event1 , SubFsm2                                             >,
-            _row < State1              , event2 , SubFsm2::direct<SubFsm2_::SubState2>                >,
-            _row < State1              , event3 , mpl::vector<SubFsm2::direct<SubFsm2_::SubState2>,
-                                                              SubFsm2::direct<SubFsm2_::SubState2b> > >,
-            _row < State1              , event4 , SubFsm2::entry_pt
-                                                        <SubFsm2_::PseudoEntry1>                      >,
-            //   +---------------------+--------+------------------------------------+-------+--------+
-            _row < SubFsm2             , event1 , State1                                              >,
-            _row < SubFsm2::exit_pt
-                <SubFsm2_::PseudoExit1>, event6 , State2                                              >
-            //   +---------------------+--------+------------------------------------+-------+--------+
-        > {};
+        EUML2_STT(
+            Fsm_,
+            EUML2_STT_CFG(EUML2_STT_USE("SubFsm2",SubFsm2),
+                          EUML2_STT_USE("event1",event1),
+                          EUML2_STT_USE("event2",event2),
+                          EUML2_STT_USE("event3",event3),
+                          EUML2_STT_USE("event4",event4),
+                          EUML2_STT_USE("event5",event5),
+                          EUML2_STT_USE("event6",event6),
+                          EUML2_STT_USE("SubState2_2b",SubState2_2b),
+                          EUML2_STT_USE("SubState2",SubFsm2::direct<SubFsm2_::SubState2>),
+                          EUML2_STT_USE("PseudoEntry1",SubFsm2::entry_pt<SubFsm2_::PseudoEntry1>),
+                          EUML2_STT_USE("PseudoExit1",SubFsm2::exit_pt<SubFsm2_::PseudoExit1>)),
+            //     +---------------------------------------------------------------------------------------+
+            EUML2_ROW("State1      + event1 / entry_action -> SubFsm2"),
+            EUML2_ROW("State1      + event2                -> SubState2"),
+            EUML2_ROW("State1      + event3                -> SubState2_2b"),
+            EUML2_ROW("State1      + event4                -> PseudoEntry1"),
+            EUML2_ROW("SubFsm2     + event1                -> State1") ,
+            EUML2_ROW("PseudoExit1 + event6                -> State2")
+            //     +---------------------------------------------------------------------------------------+
+        )
 
         // Replaces the default no-transition response.
         template <class FSM,class Event>
@@ -163,13 +163,13 @@ BOOST_AUTO_TEST_CASE( my_euml2_entries )
     Fsm p;
 
     p.start();
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().entry_counter == 1,"State1 entry not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().entry_counter == 1,"State1 entry not called correctly");
 
     p.process_event(event1());
     p.process_event(event1());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 0,"State1 should be active");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().exit_counter == 1,"State1 exit not called correctly");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().entry_counter == 2,"State1 entry not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().exit_counter == 1,"State1 exit not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().entry_counter == 2,"State1 entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().exit_counter == 1,"SubFsm2 exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().entry_counter == 1,"SubFsm2 entry not called correctly");
 
@@ -177,8 +177,8 @@ BOOST_AUTO_TEST_CASE( my_euml2_entries )
     p.process_event(event6());
     p.process_event(event1());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 0,"State1 should be active");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().exit_counter == 2,"State1 exit not called correctly");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().entry_counter == 3,"State1 entry not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().exit_counter == 2,"State1 exit not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().entry_counter == 3,"State1 entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().exit_counter == 2,"SubFsm2 exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().entry_counter == 2,"SubFsm2 entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().get_state<SubFsm2_::SubState2&>().entry_counter == 1,
@@ -193,8 +193,8 @@ BOOST_AUTO_TEST_CASE( my_euml2_entries )
     p.process_event(event3());
     p.process_event(event1());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 0,"State1 should be active");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().exit_counter == 3,"State1 exit not called correctly");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().entry_counter == 4,"State1 entry not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().exit_counter == 3,"State1 exit not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().entry_counter == 4,"State1 entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().exit_counter == 3,"SubFsm2 exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().entry_counter == 3,"SubFsm2 entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().get_state<SubFsm2_::SubState2&>().entry_counter == 2,
@@ -207,10 +207,10 @@ BOOST_AUTO_TEST_CASE( my_euml2_entries )
                         "SubFsm2::SubState2b exit not called correctly");
 
     p.process_event(event4());
-    p.process_event(BOOST_MSM_EUML2_EVENT("event5",SubFsm2_)());
+    p.process_event(event5());
     BOOST_CHECK_MESSAGE(p.current_state()[0] == 2,"State2 should be active");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State1&>().exit_counter == 4,"State1 exit not called correctly");
-    BOOST_CHECK_MESSAGE(p.get_state<Fsm_::State2&>().entry_counter == 1,"State2 entry not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State1",Fsm_)&>().exit_counter == 4,"State1 exit not called correctly");
+    BOOST_CHECK_MESSAGE(p.get_state<BOOST_MSM_EUML2_STATE_IMPL("State2",Fsm_)&>().entry_counter == 1,"State2 entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().exit_counter == 4,"SubFsm2 exit not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().entry_counter == 4,"SubFsm2 entry not called correctly");
     BOOST_CHECK_MESSAGE(p.get_state<SubFsm2&>().get_state<SubFsm2_::PseudoEntry1&>().entry_counter == 1,

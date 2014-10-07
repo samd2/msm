@@ -16,7 +16,7 @@
 // eUML2 stt grammar
 #define BOOST_MPL_LIMIT_STRING_SIZE 80
 #define MPLLIBS_LIMIT_STRING_SIZE BOOST_MPL_LIMIT_STRING_SIZE
-#include <boost/msm/front/euml2/stt_grammar.hpp>
+#include <boost/msm/front/euml2/euml2.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -99,7 +99,7 @@ namespace
             // (for which an implementation is provided below)
             EUML2_STT_CFG(EUML2_STT_USE("cd_detected",cd_detected),EUML2_STT_USE("Playing",Playing)),
             //     +---------------------------------------------------------------------------------------+
-            EUML2_ROW("Stopped + play        [dummy]     / start_pback,test_fct -> Playing"),
+            EUML2_ROW("Stopped + play        [dummy] / start_pback,test_fct -> Playing"),
             EUML2_ROW("Stopped + open_close              / open_drawer   -> Open"),
             EUML2_ROW("Stopped + stop                                    -> Stopped"),
             EUML2_ROW("Open    + open_close  [can_close] / close_drawer  -> Empty"),

@@ -13,7 +13,7 @@
 // eUML2 stt grammar
 #define BOOST_MPL_LIMIT_STRING_SIZE 64
 #define MPLLIBS_LIMIT_STRING_SIZE BOOST_MPL_LIMIT_STRING_SIZE
-#include <boost/msm/front/euml2/stt_grammar.hpp>
+#include <boost/msm/front/euml2/euml2.hpp>
 #include <typeinfo>
 #include <boost/test/unit_test.hpp>
 

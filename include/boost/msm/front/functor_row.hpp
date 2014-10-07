@@ -64,6 +64,7 @@ namespace boost { namespace msm { namespace front
         typedef TARGET  Target;
         typedef ACTION  Action;
         typedef GUARD   Guard;
+        typedef TARGET  OrgTarget;
         // action plus guard
         typedef row_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -90,6 +91,7 @@ namespace boost { namespace msm { namespace front
         typedef TARGET  Target;
         typedef none    Action;
         typedef none    Guard;
+        typedef TARGET  OrgTarget;
         // no action, no guard
         typedef _row_tag row_type_tag;
     };
@@ -102,6 +104,7 @@ namespace boost { namespace msm { namespace front
         typedef TARGET  Target;
         typedef ACTION  Action;
         typedef none    Guard;
+        typedef TARGET  OrgTarget;
         // no guard
         typedef a_row_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -121,6 +124,7 @@ namespace boost { namespace msm { namespace front
         typedef TARGET  Target;
         typedef none    Action;
         typedef GUARD   Guard;
+        typedef TARGET  OrgTarget;
         // no action
         typedef g_row_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -140,6 +144,7 @@ namespace boost { namespace msm { namespace front
         typedef Source  Target;
         typedef ACTION  Action;
         typedef none    Guard;
+        typedef none    OrgTarget;
         // no guard
         typedef a_irow_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -159,6 +164,7 @@ namespace boost { namespace msm { namespace front
         typedef Source  Target;
         typedef none    Action;
         typedef GUARD   Guard;
+        typedef none    OrgTarget;
         // no action
         typedef g_irow_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -177,6 +183,7 @@ namespace boost { namespace msm { namespace front
         typedef Source  Target;
         typedef ACTION  Action;
         typedef GUARD   Guard;
+        typedef none    OrgTarget;
         // action + guard
         typedef irow_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -202,6 +209,7 @@ namespace boost { namespace msm { namespace front
         typedef Source  Target;
         typedef none    Action;
         typedef none    Guard;
+        typedef none    OrgTarget;
         // no action, no guard
         typedef _irow_tag row_type_tag;
     };
@@ -214,6 +222,7 @@ namespace boost { namespace msm { namespace front
     template <class EVENT,class ACTION=none,class GUARD=none>
     struct Internal
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef ACTION  Action;
         typedef GUARD   Guard;
@@ -237,6 +246,7 @@ namespace boost { namespace msm { namespace front
     template<class EVENT,class ACTION>
     struct Internal<EVENT,ACTION,none>
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef ACTION  Action;
         typedef none    Guard;
@@ -253,6 +263,7 @@ namespace boost { namespace msm { namespace front
     template<class EVENT,class GUARD>
     struct Internal<EVENT,none,GUARD>
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef none    Action;
         typedef GUARD   Guard;
@@ -268,6 +279,7 @@ namespace boost { namespace msm { namespace front
     template<class EVENT>
     struct Internal<EVENT,none,none>
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef none    Action;
         typedef none    Guard;
