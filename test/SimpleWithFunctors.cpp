@@ -203,7 +203,7 @@ namespace
         struct DummyGuard 
         {
             template <class EVT,class FSM,class SourceState,class TargetState>
-            bool operator()(EVT const& ,FSM&,SourceState& ,TargetState& )
+            bool operator()(EVT const&,FSM&,SourceState&,TargetState&)
             {
                 return true;
             }
