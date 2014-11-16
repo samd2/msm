@@ -1,6 +1,6 @@
 <html><head>
       <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-   <title>Basic front-end</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch03.html" title="Chapter&nbsp;3.&nbsp;Tutorial"><link rel="prev" href="ch03.html" title="Chapter&nbsp;3.&nbsp;Tutorial"><link rel="next" href="ch03s03.html" title="Functor front-end"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Basic front-end</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;3.&nbsp;Tutorial</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch03s03.html">Next</a></td></tr></table><hr></div><div class="sect1" title="Basic front-end"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e338"></a><span class="command"><strong><a name="basic-front-end"></a></strong></span>Basic front-end</h2></div></div></div><p>This is the historical front-end, inherited from the MPL book. It provides a
+   <title>Basic front-end</title><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch03.html" title="Chapter&nbsp;3.&nbsp;Tutorial"><link rel="prev" href="ch03.html" title="Chapter&nbsp;3.&nbsp;Tutorial"><link rel="next" href="ch03s03.html" title="Functor front-end"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Basic front-end</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;3.&nbsp;Tutorial</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch03s03.html">Next</a></td></tr></table><hr></div><div class="sect1" title="Basic front-end"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e338"></a><span class="command"><strong><a name="basic-front-end"></a></strong></span>Basic front-end</h2></div></div></div><p>This is the historical front-end, inherited from the MPL book. It provides a
                     transition table made of rows of different names and functionality. Actions and
                     guards are defined as methods and referenced through a pointer in the
                     transition. This front-end provides a simple interface making easy state
@@ -117,7 +117,7 @@ void on_entry(Event const&amp; evt, Fsm&amp; fsm)
    s.data = fsm.current_calculation;
 } 
 ...
-};</pre><p>The <span class="command"><strong><a class="command" href="ch03s05.html#backend-fsm-constructor-args">set_states</a></strong></span> back-end method allows you to replace a complete
+};</pre><p>The <span class="command"><strong><a class="command" href="ch03s06.html#backend-fsm-constructor-args">set_states</a></strong></span> back-end method allows you to replace a complete
                         state.</p><p>The <span class="command"><strong><a class="command" href="ch03s03.html#functor-front-end-actions">functor</a></strong></span> front-end and eUML offer more capabilities.</p><p>However, this basic front-end also has special capabilities using the row2
                         / irow2 transitions.<span class="command"><strong><a class="command" href="ch03s02.html#basic-row2">_row2, a_row2, row2,
                             g_row2, a_irow2, irow2, g_irow2</a></strong></span> let you call an action located
@@ -170,7 +170,7 @@ void no_transition(Event const&amp; e, Fsm&amp; ,int state){...}</pre><p>
                         creation. The start method will initiate the state machine, meaning it will
                         activate the initial state, which means in turn that the initial state's
                         entry behavior will be called. The reason why we need this will be explained
-                        in the <a class="link" href="ch03s05.html#backend-start">back-end part</a>. After a call
+                        in the <a class="link" href="ch03s06.html#backend-start">back-end part</a>. After a call
                         to start, the state machine is ready to process events. The same way,
                         calling <code class="code">stop()</code> will cause the last exit actions to be called.</p></div><div class="sect2" title="Defining a submachine"><div class="titlepage"><div><div><h3 class="title"><a name="d0e529"></a>Defining a submachine</h3></div></div></div><p>We now want to extend our last state machine by making the Playing state a
                         state machine itself (a submachine).</p><p><span class="inlinemediaobject"><img src="../images/CompositeTutorial.jpg" width="60%"></span></p><p>Again, an <a class="link" href="examples/CompositeTutorial.cpp" target="_top">example</a>
@@ -505,7 +505,7 @@ g_row &lt; Empty , play , Playing , &amp;player_::condition2 &gt;</pre><p>
                             SubState2 is a nested state, therefore the SubFsm2_::SubState2 syntax.
                             The containing machine (containing State1 and SubFsm2) refers to the
                             backend instance (SubFsm2). SubFsm2::direct states that an explicit
-                            entry is desired.</p><p><span class="command"><strong><a name="explicit-entry-no-region-id"></a></strong></span>Thanks to the <span class="command"><strong><a class="command" href="ch03s05.html#backend-compile-time-analysis">mpl_graph</a></strong></span> library you can also omit to provide the region
+                            entry is desired.</p><p><span class="command"><strong><a name="explicit-entry-no-region-id"></a></strong></span>Thanks to the <span class="command"><strong><a class="command" href="ch03s06.html#backend-compile-time-analysis">mpl_graph</a></strong></span> library you can also omit to provide the region
                             index and let MSM find out for you. The are however two points to note:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>MSM can only find out the region index if the explicit
                                         entry state is somehow connected to an initial state through
                                         a transition, no matter the direction.</p></li><li class="listitem"><p>There is a compile-time cost for this feature.</p></li></ul></div><p><span class="underline">Note (also valid for forks)</span>: in
