@@ -12,6 +12,8 @@
 #define BOOST_MSM_BACK_THREADING_POLICY_HPP
 
 #include <atomic>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/locks.hpp>
 #include <boost/msm/back/common_types.hpp>
 
 namespace boost { namespace msm { namespace back
@@ -56,6 +58,19 @@ struct thread_unsafe_policy
     {
         fsm_state = ActiveStateSwitching::after_entry(current_state,next_state);
         return HANDLED_TRUE;
+    }
+    struct fake_lock
+    {
+        ~fake_lock(){touch();}
+        void release(){}
+        void unlock(){}
+        bool owns_lock()const{return false;}
+        void touch(){}
+    };
+
+    boost::msm::back::thread_unsafe_policy::fake_lock get_queue_lock()
+    {
+        return fake_lock();
     }
 };
 
@@ -132,6 +147,14 @@ struct lockfree_policy
     {
         return HANDLED_TRUE;
     }
+    boost::unique_lock<boost::mutex> get_queue_lock()
+    {
+        boost::unique_lock<boost::mutex> head_lock(m_queue_mutex);
+        return std::move(head_lock);
+    }
+
+    // locks event queue
+    boost::mutex m_queue_mutex;
 };
 
 } } }//boost::msm::back

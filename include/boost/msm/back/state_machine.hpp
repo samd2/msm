@@ -164,6 +164,9 @@ class state_machine : //public Derived
       >
 {
 public:
+    //test
+    unsigned m_enqueued_events=0;
+    unsigned m_dequeued_events=0;
     // Create ArgumentPack
     typedef typename
         state_machine_signature::bind<A0,A1,A2,A3,A4,A5>::type
@@ -1291,7 +1294,9 @@ private:
             &library_sm::process_event; 
 
         transition_fct f = ::boost::bind(pf,this,evt);
-        m_events_queue.m_events_queue.push_back(f);
+        auto lock = m_threading_policy.get_queue_lock();
+        ++m_enqueued_events;
+        m_events_queue.m_events_queue.push_back(std::move(f));
     }
     template <class EventType>
     void enqueue_event_helper(EventType const&, ::boost::mpl::true_ const &)
@@ -1301,10 +1306,16 @@ private:
 
     void execute_queued_events_helper(::boost::mpl::false_ const &)
     {
-        while(!m_events_queue.m_events_queue.empty())
+        events_queue_t copy_queue;
         {
-            transition_fct to_call = m_events_queue.m_events_queue.front();
-            m_events_queue.m_events_queue.pop_front();
+            auto lock = m_threading_policy.get_queue_lock();
+            std::swap(m_events_queue.m_events_queue,copy_queue);
+        }
+        while(!copy_queue.empty())
+        {
+            transition_fct to_call = copy_queue.front();
+            copy_queue.pop_front();
+            ++m_dequeued_events;
             to_call();
         }
     }
@@ -1314,8 +1325,13 @@ private:
     }
     void execute_single_queued_event_helper(::boost::mpl::false_ const &)
     {
-        transition_fct to_call = m_events_queue.m_events_queue.front();
-        m_events_queue.m_events_queue.pop_front();
+        transition_fct to_call;
+        {
+            auto lock = m_threading_policy.get_queue_lock();
+            ++m_dequeued_events;
+            to_call = std::move(m_events_queue.m_events_queue.front());
+            m_events_queue.m_events_queue.pop_front();
+        }
         to_call();
     }
     void execute_single_queued_event_helper(::boost::mpl::true_ const &)
@@ -1343,16 +1359,19 @@ private:
     }
     typename events_queue_t::size_type get_message_queue_size() const
     {
+        auto lock = m_threading_policy.get_queue_lock();
         return m_events_queue.m_events_queue.size();
     }
 
     events_queue_t& get_message_queue()
     {
+        // forbidden in multi-thread mode
         return m_events_queue.m_events_queue;
     }
 
     const events_queue_t& get_message_queue() const
     {
+        // forbidden in multi-thread mode
         return m_events_queue.m_events_queue;
     }
 
@@ -1750,11 +1769,14 @@ private:
         execute_return (library_sm::*pf) (EventType const& evt) = 
             &library_sm::process_event; 
         // if we are already processing an event
+        auto lock = m_threading_policy.get_queue_lock();
         if (m_event_processing)
         {
             // event has to be put into the queue
             transition_fct f = ::boost::bind(pf,this,evt);
-            m_events_queue.m_events_queue.push_back(f);
+            ++m_enqueued_events;
+
+            m_events_queue.m_events_queue.push_back(std::move(f));
             return false;
         }
         // event can be handled, processing
@@ -1767,7 +1789,10 @@ private:
     }
     void do_post_msg_queue_helper( ::boost::mpl::false_ const &)
     {
-        m_event_processing = false;
+        {
+            auto lock = m_threading_policy.get_queue_lock();
+            m_event_processing = false;
+        }
         process_message_queue(this);
     }
     // the following 2 functions handle the processing either with a try/catch protection or without
@@ -2732,10 +2757,16 @@ BOOST_PP_REPEAT(BOOST_PP_ADD(BOOST_MSM_VISITOR_ARG_SIZE,1), MSM_VISITOR_ARGS_EXE
     void process_message_queue(StateType*, 
                                typename ::boost::disable_if<typename is_no_message_queue<StateType>::type,void >::type* = 0)
     {
+        auto lock = m_threading_policy.get_queue_lock();
         if (!m_events_queue.m_events_queue.empty())
         {
-            transition_fct to_call = m_events_queue.m_events_queue.front();
+            transition_fct to_call = std::move(m_events_queue.m_events_queue.front());
             m_events_queue.m_events_queue.pop_front();
+            if (lock.owns_lock())
+            {
+              lock.unlock();
+            }
+            ++m_dequeued_events;
             to_call();
         }
     }
@@ -2876,7 +2907,7 @@ private:
     bool                            m_is_included;
     visitor_fct_helper<BaseState>   m_visitors;
     substate_list                   m_substate_list;
-
+    ThreadingPolicy                 m_threading_policy;
 
 };
 

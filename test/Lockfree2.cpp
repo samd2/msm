@@ -8,6 +8,7 @@
 // file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
+#define BOOST_THREAD_VERSION 3
 #include <iostream>
 // back-end
 #include <boost/msm/back/state_machine.hpp>
@@ -21,7 +22,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_THREAD_VERSION 3
+
 #include <boost/thread/thread.hpp>
 #include <boost/thread/scoped_thread.hpp>
 #include <boost/thread/future.hpp>
@@ -171,7 +172,7 @@ namespace
 
 
     BOOST_AUTO_TEST_CASE( test_lockfree_internal_strong )
-    {     
+    {
         // Pick a back-end
         typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<>> player;
 
@@ -196,7 +197,7 @@ namespace
                 for (int i = 0 ; i< 1000000 ; ++i)
                 {
                     p.process_event(eventRun());
-                }                
+                }
                 fu.get();
                 start = boost::chrono::high_resolution_clock::now();
                 for (int i = 0 ; i< 1000000 ; ++i)

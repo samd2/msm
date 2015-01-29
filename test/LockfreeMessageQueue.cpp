@@ -34,18 +34,14 @@ using namespace msm::front;
 namespace
 {
     // events
-    struct event1 {};
-    struct event2 {};
+    struct eventRun {};
+    struct eventStop {};
 
     // front-end: define the FSM structure
     struct player_ : public msm::front::state_machine_def<player_>
     {
         // no need for exception handling or message queue
         typedef int no_exception_thrown;
-        typedef int no_message_queue;
-
-        int m_c=0;
-        int action_counter=0;
 
         // The list of FSM states
         struct State1 : public msm::front::state<>
@@ -75,32 +71,22 @@ namespace
             int entry_counter;
             int exit_counter;
         };
-
         // the initial state of the player SM. Must be defined
         typedef State1 initial_state;
 
-        // transition actions
-        struct action1
-        {
-            template <class EVT,class FSM,class SourceState,class TargetState>
-            void operator()(EVT const& ,FSM& fsm,SourceState& ,TargetState& )
-            {
-                ++fsm.action_counter;
-            }
-        };
 
         // guard conditions
+
+
+        typedef player_ p; // makes transition table cleaner
 
         // Transition table for player
         struct transition_table : mpl::vector<
             //    Start     Event         Next      Action                     Guard
             //  +---------+-------------+---------+---------------------------+----------------------+
-            Row < State1  , event1      , State2  , none                      , none                 >,
-            Row < State1  , event2      , none    , none                      , none                 >,
-            Row < State2  , event2      , State3  , action1                   , none                 >,
-            Row < State2  , event1      , none    , none                      , none                 >,
-            Row < State3  , event1      , State1  , none                      , none                 >,
-            Row < State3  , event2      , none    , none                      , none                 >
+            Row < State1  , eventRun    , State2  , none                      , none                 >,
+            Row < State2  , eventRun    , State3  , none                      , none                 >,
+            Row < State3  , eventRun    , State1  , none                      , none                 >
             //  +---------+-------------+---------+---------------------------+----------------------+
         > {};
 
@@ -108,7 +94,7 @@ namespace
         template <class FSM,class Event>
         void no_transition(Event const& /*evt*/, FSM&,int /*s*/)
         {
-            //std::cout << "no transition from state: " << s << " and event: " << typeid(evt).name() << " and counter: " << m_c << std::endl;
+            //std::cout << "no transition from state: " << s << " and event: " << typeid(evt).name() << std::endl;
             BOOST_FAIL("no_transition called!");
         }
         template <class FSM,class Event>
@@ -147,24 +133,27 @@ namespace
       {
         _promise->set_value();
         boost::this_thread::sleep(boost::posix_time::milliseconds(50));
-        for (int i = 0 ; i< 1000000 ; ++i)
+        for (int j = 0 ; j< 100 ; ++j)
         {
-            _fsm.process_event(event2());
+            for (int i = 0 ; i< 9000 ; ++i)
+            {
+                _fsm.enqueue_event(eventRun());
+            }
+            boost::this_thread::sleep(boost::posix_time::milliseconds(10));
         }
         _promise2->set_value();
       }
     };
 
-    BOOST_AUTO_TEST_CASE( test_lockfree_no_transition )
+    BOOST_AUTO_TEST_CASE( test_lockfree_message_queue )
     {
         // Pick a back-end
         typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<>> player;
-        for (int c = 0 ; c< 100 ; ++c)
+        for (int c = 0 ; c< 10 ; ++c)
         {
             player p;
             p.start();
             {
-                p.m_c=c;
                 boost::shared_ptr<boost::promise<void> > aPromise(new boost::promise<void>);
                 boost::shared_future<void> fu = aPromise->get_future();
                 boost::shared_ptr<boost::promise<void> > aPromise2(new boost::promise<void>);
@@ -172,23 +161,22 @@ namespace
 
                 boost::thread t(( func<player>(p,aPromise,aPromise2) ));
                 boost::strict_scoped_thread<> g( (boost::move(t)) );
-                for (int i = 0 ; i< 1000000 ; ++i)
-                {
-                    p.process_event(event1());
-                }
                 fu.get();
-                for (int i = 0 ; i< 10000000 ; ++i)
+                while (!fu2.has_value())
                 {
-                    p.process_event(event1());
+                    p.execute_queued_events();
                 }
                 fu2.get();
+                p.execute_queued_events();
             }
             p.stop();
 
             BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == p.get_state<player_::State1&>().exit_counter,"State1 entry != State1 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State2&>().entry_counter == p.get_state<player_::State2&>().exit_counter,"State2 entry != State2 exit");
             BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.get_state<player_::State3&>().exit_counter,"State3 entry != State3 exit");
-            BOOST_CHECK_MESSAGE(p.get_state<player_::State3&>().entry_counter == p.action_counter,"State3 entry != action_counter");
+            BOOST_CHECK_MESSAGE(p.get_state<player_::State1&>().entry_counter == 300001,"State1 entry != 300001");
+
+            BOOST_CHECK_MESSAGE(p.current_state()[0] == 0,"State1 should be active"); //Stopped
         }
 
     }

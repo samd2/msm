@@ -8,6 +8,7 @@
 // file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
+#define BOOST_THREAD_VERSION 3
 #include <iostream>
 // back-end
 #include <boost/msm/back/state_machine.hpp>
@@ -21,7 +22,6 @@
 #endif
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_THREAD_VERSION 3
 #include <boost/thread/thread.hpp>
 #include <boost/thread/scoped_thread.hpp>
 #include <boost/thread/future.hpp>
@@ -41,7 +41,7 @@ namespace
     {
         // no need for exception handling or message queue
         typedef int no_exception_thrown;
-        typedef int no_message_queue;
+        //typedef int no_message_queue;
 
         int m_c=0;
         int action_counter=0;
@@ -93,6 +93,8 @@ namespace
             void operator()(EVT const& ,FSM& fsm,SourceState& ,TargetState& )
             {
                 ++fsm.action_counter;
+                // use the message queue
+                fsm.template process_event(eventRun());
             }
         };
 
@@ -166,7 +168,7 @@ namespace
     };
 
     BOOST_AUTO_TEST_CASE( test_lockfree_terminate_strong )
-    {     
+    {
         // Pick a back-end
         typedef msm::back::state_machine<player_, boost::msm::back::lockfree_policy<>> player;
         for (int c = 0 ; c< 100 ; ++c)

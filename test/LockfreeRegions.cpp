@@ -8,6 +8,7 @@
 // file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
+#define BOOST_THREAD_VERSION 3
 #include <iostream>
 // back-end
 #include <boost/msm/back/state_machine.hpp>
@@ -21,7 +22,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 
-#define BOOST_THREAD_VERSION 3
+
 #include <boost/thread/thread.hpp>
 #include <boost/thread/scoped_thread.hpp>
 #include <boost/thread/future.hpp>
