@@ -164,9 +164,6 @@ class state_machine : //public Derived
       >
 {
 public:
-    //test
-    unsigned m_enqueued_events=0;
-    unsigned m_dequeued_events=0;
     // Create ArgumentPack
     typedef typename
         state_machine_signature::bind<A0,A1,A2,A3,A4,A5>::type
@@ -1295,7 +1292,6 @@ private:
 
         transition_fct f = ::boost::bind(pf,this,evt);
         auto lock = m_threading_policy.get_queue_lock();
-        ++m_enqueued_events;
         m_events_queue.m_events_queue.push_back(std::move(f));
     }
     template <class EventType>
@@ -1315,7 +1311,6 @@ private:
         {
             transition_fct to_call = copy_queue.front();
             copy_queue.pop_front();
-            ++m_dequeued_events;
             to_call();
         }
     }
@@ -1328,7 +1323,6 @@ private:
         transition_fct to_call;
         {
             auto lock = m_threading_policy.get_queue_lock();
-            ++m_dequeued_events;
             to_call = std::move(m_events_queue.m_events_queue.front());
             m_events_queue.m_events_queue.pop_front();
         }
@@ -1774,8 +1768,6 @@ private:
         {
             // event has to be put into the queue
             transition_fct f = ::boost::bind(pf,this,evt);
-            ++m_enqueued_events;
-
             m_events_queue.m_events_queue.push_back(std::move(f));
             return false;
         }
@@ -2766,7 +2758,6 @@ BOOST_PP_REPEAT(BOOST_PP_ADD(BOOST_MSM_VISITOR_ARG_SIZE,1), MSM_VISITOR_ARGS_EXE
             {
               lock.unlock();
             }
-            ++m_dequeued_events;
             to_call();
         }
     }
