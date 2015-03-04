@@ -320,7 +320,7 @@ typedef  mpllibs::metaparse::token<
 
 struct eval_or
 {
-  template <class C, class State>
+  template <class State, class C>
   struct apply :
     boost::msm::front::euml::Or_<
           typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
@@ -330,7 +330,7 @@ struct eval_or
 };
 struct eval_and
 {
-  template <class C, class State>
+  template <class State, class C>
   struct apply :
     boost::msm::front::euml::And_<
           typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
@@ -340,7 +340,7 @@ struct eval_and
 };
 struct eval_equal_to
 {
-  template <class C, class State>
+  template <class State, class C>
   struct apply :
     boost::msm::front::euml::EqualTo_<
           typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
@@ -350,7 +350,7 @@ struct eval_equal_to
 };
 struct eval_not_equal_to
 {
-  template <class C, class State>
+  template <class State, class C>
   struct apply :
     boost::msm::front::euml::NotEqualTo_<
           typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type,
@@ -360,7 +360,7 @@ struct eval_not_equal_to
 };
 struct eval_not
 {
-  template <class C, class State>
+  template <class State, class C>
   struct apply :
     boost::msm::front::euml::Not_<
           typename boost::msm::front::euml2::make_euml2_guard<typename State::type>::type
@@ -423,7 +423,7 @@ typedef mpllibs::metaparse::one_of<token_name, paren_comma_exp> simple_action_ex
 
 struct eval_action
 {
-  template <class C, class State>
+  template <class State, class C>
   struct apply :
     boost::msm::front::ActionSequence_<boost::mpl::vector<
           typename boost::msm::front::euml2::make_euml2_action<typename State::type>::type,
