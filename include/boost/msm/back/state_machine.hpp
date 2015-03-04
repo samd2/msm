@@ -1371,6 +1371,7 @@ private:
 
     void clear_deferred_queue()
     {
+        auto lock = m_threading_policy.get_deferred_queue_lock();
         m_deferred_events_queue.clear();
     }
 
@@ -1817,7 +1818,7 @@ private:
     template <class StateType, class Enable = int> 
     struct handle_defer_helper
     {
-        handle_defer_helper(deferred_msg_queue_helper<library_sm>& ){}
+        handle_defer_helper(library_sm*,deferred_msg_queue_helper<library_sm>& ){}
         void do_pre_handle_deferred()
         {
         }
@@ -1831,16 +1832,17 @@ private:
     struct handle_defer_helper
         <StateType, typename enable_if< typename ::boost::msm::back::has_fsm_deferred_events<StateType>::type,int >::type>
     {
-        handle_defer_helper(deferred_msg_queue_helper<library_sm>& a_queue):
-            events_queue(a_queue),next_deferred_event(){}
+        handle_defer_helper(library_sm* fsm,deferred_msg_queue_helper<library_sm>& a_queue):
+            fsm_(fsm),events_queue(a_queue){}
         void do_pre_handle_deferred()
         {
         }
 
         void do_post_handle_deferred(HandledEnum handled)
         {
+            auto lock = fsm_->m_threading_policy.get_deferred_queue_lock();
             if (handled == HANDLED_TRUE)
-            {
+            {                
                 // a transition has been taken, it makes sense again to try processing waiting deferred events
                 // reset all events to not tested 
                 for (std::size_t i = 0; i < events_queue.m_deferred_events_queue.size(); ++i)
@@ -1850,8 +1852,12 @@ private:
                 // test first event
                 if (!events_queue.m_deferred_events_queue.empty())
                 {
-                    deferred_fct next = events_queue.m_deferred_events_queue.front().first;
+                    deferred_fct next = std::move(events_queue.m_deferred_events_queue.front().first);
                     events_queue.m_deferred_events_queue.pop_front();
+                    if (lock.owns_lock())
+                    {
+                      lock.unlock();
+                    }
                     next();
                 }
             }
@@ -1865,16 +1871,20 @@ private:
                 if (it != events_queue.m_deferred_events_queue.end())
                 {
                     (*it).second = true;
-                    deferred_fct next = (*it).first;
+                    deferred_fct next = std::move((*it).first);
                     events_queue.m_deferred_events_queue.erase(it);
+                    if (lock.owns_lock())
+                    {
+                      lock.unlock();
+                    }
                     next();
                 }
             }
         }
 
     private:
+        library_sm*                             fsm_;
         deferred_msg_queue_helper<library_sm>&  events_queue;
-        deferred_fct                            next_deferred_event;
     };
 
     // handling of eventless transitions
@@ -2030,7 +2040,7 @@ private:
         {
             // prepare the next deferred event for handling
             // if one defer is found in the SM, otherwise skip
-            handle_defer_helper<library_sm> defer_helper(m_deferred_events_queue);
+            handle_defer_helper<library_sm> defer_helper(this,m_deferred_events_queue);
             defer_helper.do_pre_handle_deferred();
             // process event
             HandledEnum handled = this->do_process_helper<Event>
@@ -2683,7 +2693,7 @@ BOOST_PP_REPEAT(BOOST_PP_ADD(BOOST_MSM_VISITOR_ARG_SIZE,1), MSM_VISITOR_ARGS_EXE
         // handle messages which were generated and blocked in the init calls
         m_event_processing = false;
         // look for deferred events waiting
-        handle_defer_helper<library_sm> defer_helper(m_deferred_events_queue);
+        handle_defer_helper<library_sm> defer_helper(this,m_deferred_events_queue);
         defer_helper.do_post_handle_deferred(HANDLED_TRUE);
         process_message_queue(this);
      }
@@ -2742,6 +2752,7 @@ BOOST_PP_REPEAT(BOOST_PP_ADD(BOOST_MSM_VISITOR_ARG_SIZE,1), MSM_VISITOR_ARGS_EXE
     // puts a deferred event in the queue
     void post_deferred_event(deferred_fct& deferred)
     {
+        auto lock = m_threading_policy.get_deferred_queue_lock();
         m_deferred_events_queue.m_deferred_events_queue.push_back(std::make_pair(deferred,true));
     }
     // removes one event from the message queue and processes it

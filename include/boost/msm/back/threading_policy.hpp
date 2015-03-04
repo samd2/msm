@@ -72,6 +72,10 @@ struct thread_unsafe_policy
     {
         return fake_lock();
     }
+    boost::msm::back::thread_unsafe_policy::fake_lock get_deferred_queue_lock()
+    {
+        return fake_lock();
+    }
 };
 
 // for lockfree_policy, implements exchange_policy using a atomic::compare_exchange_weak
@@ -152,9 +156,15 @@ struct lockfree_policy
         boost::unique_lock<boost::mutex> head_lock(m_queue_mutex);
         return std::move(head_lock);
     }
-
+    boost::unique_lock<boost::mutex> get_deferred_queue_lock()
+    {
+        boost::unique_lock<boost::mutex> head_lock(m_deferred_queue_mutex);
+        return std::move(head_lock);
+    }
     // locks event queue
     boost::mutex m_queue_mutex;
+    // locks deferred event queue
+    boost::mutex m_deferred_queue_mutex;
 };
 
 } } }//boost::msm::back
