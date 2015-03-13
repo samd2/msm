@@ -91,12 +91,12 @@ namespace
         void State2ToState3(none const&)       { ++state2_to_state3_counter; }
         void State3ToState4(none const&)       { ++state3_to_state4_counter; }
         // guard conditions
-        bool always_true(none const& )
+        bool always_true(none const&)
         {
             ++always_true_counter;
             return true;
         }
-        bool always_false(none const& )
+        bool always_false(none const&)
         {
             ++always_false_counter;
             return false;
@@ -142,8 +142,8 @@ namespace
     //static char const* const state_names[] = { "State1", "State2", "State3", "State4" };
 
 
-    BOOST_AUTO_TEST_CASE( my_test )
-    {        
+    BOOST_AUTO_TEST_CASE( test_anonymous )
+    {
         my_machine p;
 
         // needed to start the highest-level SM. This will call on_entry and mark the start of the SM
@@ -161,7 +161,6 @@ namespace
         BOOST_CHECK_MESSAGE(p.always_false_counter == 1,"guard not called correctly");
         BOOST_CHECK_MESSAGE(p.state2_to_state3_counter == 1,"action not called correctly");
         BOOST_CHECK_MESSAGE(p.state3_to_state4_counter == 1,"action not called correctly");
-
 
         // this event will bring us back to the initial state and thus, a new "loop" will be started
         p.process_event(event1());

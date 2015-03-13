@@ -58,11 +58,13 @@ namespace boost { namespace msm { namespace front
     template <class SOURCE,class EVENT,class TARGET,class ACTION=none,class GUARD=none>
     struct Row
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
         typedef ACTION  Action;
         typedef GUARD   Guard;
+        typedef TARGET  OrgTarget;
         // action plus guard
         typedef row_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -83,22 +85,26 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class TARGET>
     struct Row<SOURCE,EVENT,TARGET,none,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
         typedef none    Action;
         typedef none    Guard;
+        typedef TARGET  OrgTarget;
         // no action, no guard
         typedef _row_tag row_type_tag;
     };
     template<class SOURCE,class EVENT,class TARGET,class ACTION>
     struct Row<SOURCE,EVENT,TARGET,ACTION,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
         typedef ACTION  Action;
         typedef none    Guard;
+        typedef TARGET  OrgTarget;
         // no guard
         typedef a_row_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -112,11 +118,13 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class TARGET,class GUARD>
     struct Row<SOURCE,EVENT,TARGET,none,GUARD>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef TARGET  Target;
         typedef none    Action;
         typedef GUARD   Guard;
+        typedef TARGET  OrgTarget;
         // no action
         typedef g_row_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -130,11 +138,13 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class ACTION>
     struct Row<SOURCE,EVENT,none,ACTION,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
         typedef ACTION  Action;
         typedef none    Guard;
+        typedef none    OrgTarget;
         // no guard
         typedef a_irow_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -148,11 +158,13 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class GUARD>
     struct Row<SOURCE,EVENT,none,none,GUARD>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
         typedef none    Action;
         typedef GUARD   Guard;
+        typedef none    OrgTarget;
         // no action
         typedef g_irow_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -165,11 +177,13 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT,class ACTION,class GUARD>
     struct Row<SOURCE,EVENT,none,ACTION,GUARD>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
         typedef ACTION  Action;
         typedef GUARD   Guard;
+        typedef none    OrgTarget;
         // action + guard
         typedef irow_tag row_type_tag;
         template <class EVT,class FSM,class SourceState,class TargetState,class AllStates>
@@ -189,11 +203,13 @@ namespace boost { namespace msm { namespace front
     template<class SOURCE,class EVENT>
     struct Row<SOURCE,EVENT,none,none,none>
     {
+        typedef Row type;
         typedef SOURCE  Source;
         typedef EVENT   Evt;
         typedef Source  Target;
         typedef none    Action;
         typedef none    Guard;
+        typedef none    OrgTarget;
         // no action, no guard
         typedef _irow_tag row_type_tag;
     };
@@ -206,6 +222,7 @@ namespace boost { namespace msm { namespace front
     template <class EVENT,class ACTION=none,class GUARD=none>
     struct Internal
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef ACTION  Action;
         typedef GUARD   Guard;
@@ -229,6 +246,7 @@ namespace boost { namespace msm { namespace front
     template<class EVENT,class ACTION>
     struct Internal<EVENT,ACTION,none>
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef ACTION  Action;
         typedef none    Guard;
@@ -245,6 +263,7 @@ namespace boost { namespace msm { namespace front
     template<class EVENT,class GUARD>
     struct Internal<EVENT,none,GUARD>
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef none    Action;
         typedef GUARD   Guard;
@@ -260,6 +279,7 @@ namespace boost { namespace msm { namespace front
     template<class EVENT>
     struct Internal<EVENT,none,none>
     {
+        typedef Internal type;
         typedef EVENT   Evt;
         typedef none    Action;
         typedef none    Guard;
@@ -276,7 +296,29 @@ namespace boost { namespace msm { namespace front
     template <class Sequence>
     struct ActionSequence_
     {
+        typedef ActionSequence_ type;
         typedef Sequence sequence;
+        // needed for euml2
+        typedef int name_type;
+        template <class Op,class Param, class T>
+        struct make_recurse
+        {
+            typedef typename T::template recurse<Op,Param>::type type;
+        };
+
+        template <class Op,class Param>
+        struct recurse
+        {
+            typedef ActionSequence_<typename boost::mpl::fold<
+                        Sequence,
+                        boost::mpl::vector<>,
+                        ::boost::mpl::push_back<
+                            ::boost::mpl::placeholders::_1,
+                            make_recurse< Op, Param, ::boost::mpl::placeholders::_2>
+                        >
+                    >::type> type;
+        };
+
         // if one functor of the sequence defers events, the complete sequence does
         typedef ::boost::mpl::bool_< 
             ::boost::mpl::count_if<sequence, 

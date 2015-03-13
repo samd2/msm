@@ -210,7 +210,7 @@ namespace
         > {};
         // Replaces the default no-transition response.
         template <class FSM,class Event>
-        void no_transition(Event const& , FSM&,int )
+        void no_transition(Event const&, FSM&,int)
         {
             BOOST_FAIL("no_transition called!");
         }

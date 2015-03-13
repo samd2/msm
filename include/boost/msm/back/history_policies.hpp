@@ -19,33 +19,35 @@ namespace boost { namespace msm { namespace back
 // policy classes
 
 // Default: no history used
-template <int NumberOfRegions>
+template <int NumberOfRegions, class ThreadingPolicy>
 class NoHistoryImpl
 {
 public:
     NoHistoryImpl(){}
     ~NoHistoryImpl(){}
-    void set_initial_states(int* const initial_states)
+    void set_initial_states(typename ThreadingPolicy::state_index_type* const initial_states)
     {
         for (int i=0;i<NumberOfRegions;++i)
-            m_initialStates[i] = initial_states[i];
+        {
+            ThreadingPolicy::assign(m_initialStates[i], initial_states[i]);
+        }
     }
-    void history_exit(int* const )
+    void history_exit(typename ThreadingPolicy::state_index_type* const )
     {
         // ignore
     }
     // returns the state where the state machine should be at start
     template <class Event>
-    const int* history_entry(Event const& )
+    const typename ThreadingPolicy::state_index_type* history_entry(Event const& )
     {
         // always come back to the original state
         return m_initialStates;
     }
-    NoHistoryImpl<NumberOfRegions>& operator=(NoHistoryImpl<NumberOfRegions> const& rhs)
+    NoHistoryImpl<NumberOfRegions,ThreadingPolicy>& operator=(NoHistoryImpl<NumberOfRegions,ThreadingPolicy> const& rhs)
     {
          for (int i=0; i<NumberOfRegions;++i)
          {
-             m_initialStates[i] = rhs.m_initialStates[i];
+             ThreadingPolicy::assign(m_initialStates[i] , rhs.m_initialStates[i]);
          }
          return *this;
     }
@@ -61,38 +63,42 @@ public:
         ar & m_initialStates;
     }
 private:
-    int m_initialStates[NumberOfRegions];
+    typename ThreadingPolicy::state_index_type m_initialStates[NumberOfRegions];
 };
 
 // not UML standard. Always activates history, no matter which event generated the transition
-template <int NumberOfRegions>
+template <int NumberOfRegions, class ThreadingPolicy>
 class AlwaysHistoryImpl
 {
 public:
     AlwaysHistoryImpl(){}
     ~AlwaysHistoryImpl(){}
-    void set_initial_states(int* const initial_states)
+    void set_initial_states(typename ThreadingPolicy::state_index_type* const initial_states)
     {
         for (int i=0;i<NumberOfRegions;++i)
-            m_initialStates[i] = initial_states[i];
+        {
+            ThreadingPolicy::assign(m_initialStates[i], initial_states[i]);
+        }
     }
-    void history_exit(int* const current_states)
+    void history_exit(typename ThreadingPolicy::state_index_type* const current_states)
     {
         for (int i=0;i<NumberOfRegions;++i)
-            m_initialStates[i] = current_states[i];
+        {
+            ThreadingPolicy::assign(m_initialStates[i] , current_states[i]);
+        }
     }
     // returns the state where the state machine should be at start
     template <class Event>
-    const int* history_entry(Event const& )
+    const typename ThreadingPolicy::state_index_type* history_entry(Event const& )
     {
         // always load back the last active state
         return m_initialStates;
     }
-    AlwaysHistoryImpl<NumberOfRegions>& operator=(AlwaysHistoryImpl<NumberOfRegions> const& rhs)
+    AlwaysHistoryImpl<NumberOfRegions,ThreadingPolicy>& operator=(AlwaysHistoryImpl<NumberOfRegions,ThreadingPolicy> const& rhs)
     {
          for (int i=0; i<NumberOfRegions;++i)
          {
-             m_initialStates[i] = rhs.m_initialStates[i];
+             ThreadingPolicy::assign(m_initialStates[i] , rhs.m_initialStates[i]);
          }
          return *this;
     }
@@ -109,32 +115,32 @@ public:
         ar & m_initialStates;
     }
 private:
-    int m_initialStates[NumberOfRegions];
+    typename ThreadingPolicy::state_index_type m_initialStates[NumberOfRegions];
 };
 
 // UML Shallow history. For deep history, just use this policy for all the contained state machines
-template <class Events,int NumberOfRegions>
+template <class Events,int NumberOfRegions, class ThreadingPolicy>
 class ShallowHistoryImpl
 {
 public:
     ShallowHistoryImpl(){}
     ~ShallowHistoryImpl(){}
-    void set_initial_states(int* const initial_states)
+    void set_initial_states(typename ThreadingPolicy::state_index_type* const initial_states)
     {
         for (int i=0;i<NumberOfRegions;++i)
         {
-            m_currentStates[i] = initial_states[i];
-            m_initialStates[i] = initial_states[i];
+            ThreadingPolicy::assign(m_currentStates[i] , initial_states[i]);
+            ThreadingPolicy::assign(m_initialStates[i] , initial_states[i]);
         }
     }
-    void history_exit(int* const current_states)
+    void history_exit(typename ThreadingPolicy::state_index_type* const current_states)
     {
         for (int i=0;i<NumberOfRegions;++i)
-            m_currentStates[i] = current_states[i];
+            ThreadingPolicy::assign(m_currentStates[i] , current_states[i]);
     }
     // returns the state where the state machine should be at start
     template <class Event>
-    const int* history_entry(Event const&)
+    const typename ThreadingPolicy::state_index_type* history_entry(Event const&)
     {
         if ( ::boost::mpl::contains<Events,Event>::value)
         {
@@ -143,12 +149,12 @@ public:
         // not one of our events, no history
         return m_initialStates;
     }
-    ShallowHistoryImpl<Events,NumberOfRegions>& operator=(ShallowHistoryImpl<Events,NumberOfRegions> const& rhs)
+    ShallowHistoryImpl<Events,NumberOfRegions,ThreadingPolicy>& operator=(ShallowHistoryImpl<Events,NumberOfRegions,ThreadingPolicy> const& rhs)
     {
          for (int i=0; i<NumberOfRegions;++i)
          {
-             m_initialStates[i] = rhs.m_initialStates[i];
-             m_currentStates[i] = rhs.m_currentStates[i];
+             ThreadingPolicy::assign(m_initialStates[i] , rhs.m_initialStates[i]);
+             ThreadingPolicy::assign(m_currentStates[i] , rhs.m_currentStates[i]);
          }
          return *this;
     }
@@ -165,36 +171,36 @@ public:
         ar & m_currentStates;
     }
 private:
-    int m_initialStates[NumberOfRegions];
-    int m_currentStates[NumberOfRegions];
+    typename ThreadingPolicy::state_index_type m_initialStates[NumberOfRegions];
+    typename ThreadingPolicy::state_index_type m_currentStates[NumberOfRegions];
 };
 
 struct NoHistory
 {
     typedef int history_policy;
-    template <int NumberOfRegions>
+    template <int NumberOfRegions, class ThreadingPolicy>
     struct apply
     {
-        typedef NoHistoryImpl<NumberOfRegions> type;
+        typedef NoHistoryImpl<NumberOfRegions,ThreadingPolicy> type;
     };
 };
 struct AlwaysHistory
 {
     typedef int history_policy;
-    template <int NumberOfRegions>
+    template <int NumberOfRegions, class ThreadingPolicy>
     struct apply
     {
-        typedef AlwaysHistoryImpl<NumberOfRegions> type;
+        typedef AlwaysHistoryImpl<NumberOfRegions,ThreadingPolicy> type;
     };
 };
 template <class Events>
 struct ShallowHistory
 {
     typedef int history_policy;
-    template <int NumberOfRegions>
+    template <int NumberOfRegions, class ThreadingPolicy>
     struct apply
     {
-        typedef ShallowHistoryImpl<Events,NumberOfRegions> type;
+        typedef ShallowHistoryImpl<Events,NumberOfRegions,ThreadingPolicy> type;
     };
 };
 } } }//boost::msm::back
