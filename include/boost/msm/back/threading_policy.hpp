@@ -68,11 +68,11 @@ struct thread_unsafe_policy
         void touch(){}
     };
 
-    boost::msm::back::thread_unsafe_policy::fake_lock get_queue_lock()
+    boost::msm::back::thread_unsafe_policy::fake_lock get_queue_lock()const
     {
         return fake_lock();
     }
-    boost::msm::back::thread_unsafe_policy::fake_lock get_deferred_queue_lock()
+    boost::msm::back::thread_unsafe_policy::fake_lock get_deferred_queue_lock()const
     {
         return fake_lock();
     }
@@ -151,20 +151,20 @@ struct lockfree_policy
     {
         return HANDLED_TRUE;
     }
-    boost::unique_lock<boost::mutex> get_queue_lock()
+    boost::unique_lock<boost::mutex> get_queue_lock()const
     {
         boost::unique_lock<boost::mutex> head_lock(m_queue_mutex);
         return std::move(head_lock);
     }
-    boost::unique_lock<boost::mutex> get_deferred_queue_lock()
+    boost::unique_lock<boost::mutex> get_deferred_queue_lock()const
     {
         boost::unique_lock<boost::mutex> head_lock(m_deferred_queue_mutex);
         return std::move(head_lock);
     }
     // locks event queue
-    boost::mutex m_queue_mutex;
+    mutable boost::mutex m_queue_mutex;
     // locks deferred event queue
-    boost::mutex m_deferred_queue_mutex;
+    mutable boost::mutex m_deferred_queue_mutex;
 };
 
 } } }//boost::msm::back
