@@ -805,3 +805,9 @@ void test()
 }
 
 #endif
+
+int main()
+{
+    test();
+    return 0;
+}
